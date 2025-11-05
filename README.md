@@ -257,16 +257,6 @@ O aplicativo utiliza variáveis de ambiente e configurações em `config/constan
 - [ ] Modo offline
 - [ ] Testes automatizados
 
-## 🤝 Contribuindo
-
-Este projeto foi desenvolvido como parte de um desafio/assignment. Para contribuir:
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
 ## 📄 Licença
 
 Este projeto é privado e desenvolvido para fins educacionais.
