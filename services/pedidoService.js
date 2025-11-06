@@ -1,6 +1,7 @@
 // Serviço para gerenciar pedidos
 
 import { api } from './api';
+import { logger } from '../utils/logger';
 
 // Cria um novo pedido vinculado a uma comanda
 // comandaId: número da mesa/comanda
@@ -16,7 +17,7 @@ export async function createPedido(comandaId, items, observacao = '') {
       observacao: observacao || null,
     };
 
-    console.log('📤 Enviando pedido:', {
+    logger.log('📤 Enviando pedido:', {
       comandaId,
       endpoint: `/pedido/comanda/${comandaId}`,
       payload: pedidoDTO,
@@ -25,14 +26,14 @@ export async function createPedido(comandaId, items, observacao = '') {
 
     const response = await api.post(`/pedido/comanda/${comandaId}`, pedidoDTO);
     
-    console.log('✅ Resposta da API:', response);
+    logger.log('✅ Resposta da API:', response);
     
     // A API retorna EntityModel com 'pedido' ou 'content'
     const pedido = response.pedido || response.content || response;
     
     return pedido;
   } catch (error) {
-    console.error('Erro ao criar pedido:', error);
+    logger.error('Erro ao criar pedido:', error);
     throw error;
   }
 }
@@ -57,7 +58,7 @@ export async function fetchPedidosByComanda(comandaId) {
     
     return pedidos;
   } catch (error) {
-    console.error(`Erro ao buscar pedidos da comanda ${comandaId}:`, error);
+    logger.error(`Erro ao buscar pedidos da comanda ${comandaId}:`, error);
     throw error;
   }
 }
@@ -72,7 +73,7 @@ export async function fetchPedidoById(pedidoId) {
     
     return pedido;
   } catch (error) {
-    console.error(`Erro ao buscar pedido ${pedidoId}:`, error);
+    logger.error(`Erro ao buscar pedido ${pedidoId}:`, error);
     throw error;
   }
 }
@@ -89,7 +90,7 @@ export async function atualizarStatusPedido(pedidoId, status) {
     
     return pedido;
   } catch (error) {
-    console.error(`Erro ao atualizar status do pedido ${pedidoId}:`, error);
+    logger.error(`Erro ao atualizar status do pedido ${pedidoId}:`, error);
     throw error;
   }
 }
@@ -109,7 +110,7 @@ export async function atualizarPedido(pedidoId, comandaId, items, observacao = '
       observacao: observacao || null,
     };
 
-    console.log('🔄 Atualizando pedido:', {
+    logger.log('🔄 Atualizando pedido:', {
       pedidoId,
       comandaId,
       endpoint: `/pedido/${pedidoId}`,
@@ -120,31 +121,31 @@ export async function atualizarPedido(pedidoId, comandaId, items, observacao = '
     try {
       const response = await api.put(`/pedido/${pedidoId}`, pedidoDTO);
       const pedido = response.pedido || response.content || response;
-      console.log('✅ Pedido atualizado com sucesso:', pedido);
+      logger.log('✅ Pedido atualizado com sucesso:', pedido);
       return pedido;
     } catch (putError) {
       // Se PUT não funcionar, usa fallback: cancela e recria
-      console.warn('⚠️ PUT falhou, usando fallback (cancelar e recriar)...', putError);
+      logger.warn('⚠️ PUT falhou, usando fallback (cancelar e recriar)...', putError);
       
       if (putError.status === 404 || putError.status === 405 || putError.status >= 500) {
         // Cancela pedido antigo
         try {
           await atualizarStatusPedido(pedidoId, 'CANCELADO');
         } catch (cancelError) {
-          console.warn('Aviso ao cancelar pedido antigo:', cancelError);
+          logger.warn('Aviso ao cancelar pedido antigo:', cancelError);
           // Continua mesmo se der erro ao cancelar
         }
         
         // Cria novo pedido com os dados atualizados
         const novoPedido = await createPedido(comandaId, items, observacao);
-        console.log('✅ Pedido atualizado (recriado) com sucesso:', novoPedido);
+        logger.log('✅ Pedido atualizado (recriado) com sucesso:', novoPedido);
         return novoPedido;
       }
       // Se for outro erro (400, 401, 403), propaga o erro
       throw putError;
     }
   } catch (error) {
-    console.error(`Erro ao atualizar pedido ${pedidoId}:`, error);
+    logger.error(`Erro ao atualizar pedido ${pedidoId}:`, error);
     throw error;
   }
 }
@@ -166,7 +167,7 @@ export async function deletarPedido(pedidoId) {
       throw deleteError;
     }
   } catch (error) {
-    console.error(`Erro ao deletar pedido ${pedidoId}:`, error);
+    logger.error(`Erro ao deletar pedido ${pedidoId}:`, error);
     throw error;
   }
 }

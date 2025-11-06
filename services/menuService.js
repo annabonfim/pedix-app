@@ -2,6 +2,7 @@
 
 import { api } from './api';
 import { getItemEmoji } from '../config/emojiMap';
+import { logger } from '../utils/logger';
 
 // Busca todos os itens do cardápio
 // categoria: (opcional) filtra por categoria
@@ -56,7 +57,7 @@ export async function fetchMenuItems(categoria = null) {
       };
     });
   } catch (error) {
-    console.error('Erro ao buscar itens do cardápio:', error);
+    logger.error('Erro ao buscar itens do cardápio:', error);
     throw error;
   }
 }
@@ -92,7 +93,7 @@ export async function fetchMenuItemById(itemId) {
       available: item.disponivel !== false && item.available !== false,
     };
   } catch (error) {
-    console.error(`Erro ao buscar item ${itemId}:`, error);
+    logger.error(`Erro ao buscar item ${itemId}:`, error);
     throw error;
   }
 }

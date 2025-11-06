@@ -8,6 +8,7 @@ import { ItemImage } from '../components/ItemImage';
 import { fetchPedidoById, atualizarPedido } from '../services/pedidoService';
 import { fetchMenuItems, fetchMenuItemById } from '../services/menuService';
 import { canEditPedido } from '../utils/time';
+import { logger } from '../utils/logger';
 
 export default function EditOrderScreen() {
   const router = useRouter();
@@ -40,22 +41,21 @@ export default function EditOrderScreen() {
       setItensPedido([]);
       setObservacao('');
       
-      console.log('🔄 Carregando pedido #' + pedidoId);
+      logger.log('🔄 Carregando pedido #' + pedidoId);
       
       // Carrega pedido original
       const pedido = await fetchPedidoById(pedidoId);
       
-      console.log('📦 Pedido carregado:', {
+      logger.log('📦 Pedido carregado:', {
         id: pedido.id,
         itensCount: pedido.itens?.length || 0,
-        itens: pedido.itens,
       });
       
       setPedidoOriginal(pedido);
       
       // Verifica se é o pedido correto
       if (String(pedido.id) !== String(pedidoId)) {
-        console.error('❌ ID do pedido não confere!', {
+        logger.error('❌ ID do pedido não confere!', {
           esperado: pedidoId,
           recebido: pedido.id,
         });
@@ -66,10 +66,10 @@ export default function EditOrderScreen() {
       
       // Valida que tem itens
       const itensDoPedido = pedido.itens || [];
-      console.log('📝 Itens do pedido na API:', itensDoPedido);
+      logger.log('📝 Itens do pedido na API:', itensDoPedido.length);
       
       if (itensDoPedido.length === 0) {
-        console.warn('⚠️ Pedido sem itens!');
+        logger.warn('⚠️ Pedido sem itens!');
         setItensPedido([]);
         setObservacao(pedido.observacao || '');
         setLoading(false);
@@ -81,7 +81,7 @@ export default function EditOrderScreen() {
         const itemCardapioId = item.itemCardapioId || item.itemCardapio?.id;
         const quantidade = item.quantidade || 1;
         
-        console.log(`  Item ${index}:`, {
+        logger.log(`  Item ${index}:`, {
           itemCardapioId,
           quantidade,
           temNome: !!item.itemCardapio?.nome,
@@ -102,12 +102,9 @@ export default function EditOrderScreen() {
         // Se não tem dados completos, busca da API
         if (itemCardapioId) {
           try {
-            console.log(`  Buscando item completo ${itemCardapioId}...`);
+            logger.log(`  Buscando item completo ${itemCardapioId}...`);
             const itemCompleto = await fetchMenuItemById(itemCardapioId);
-            console.log(`  ✅ Item ${itemCardapioId} carregado:`, {
-              name: itemCompleto.name,
-              price: itemCompleto.price,
-            });
+            logger.log(`  ✅ Item ${itemCardapioId} carregado`);
             
             return {
               id: itemCardapioId.toString(),
@@ -117,7 +114,7 @@ export default function EditOrderScreen() {
               image: itemCompleto.image || itemCompleto.imageUrl || '🍽️',
             };
           } catch (error) {
-            console.warn(`  ❌ Erro ao buscar item ${itemCardapioId}:`, error);
+            logger.warn(`  ❌ Erro ao buscar item ${itemCardapioId}:`, error);
             // Fallback com dados básicos
             return {
               id: itemCardapioId.toString(),
@@ -130,7 +127,7 @@ export default function EditOrderScreen() {
         }
         
         // Fallback final
-        console.warn(`  ⚠️ Item sem ID:`, item);
+        logger.warn(`  ⚠️ Item sem ID`);
         return {
           id: itemCardapioId?.toString() || '0',
           name: `Item ${itemCardapioId || 'Desconhecido'}`,
@@ -142,14 +139,13 @@ export default function EditOrderScreen() {
       
       const itens = await Promise.all(itensPromises);
       
-      console.log('✅ Itens processados:', itens);
-      console.log('📋 Quantidade de itens no pedido:', itens.length);
+      logger.log('✅ Itens processados:', itens.length);
       
       // Filtra apenas itens válidos (com ID)
       const itensValidos = itens.filter(item => item && item.id);
       
       if (itensValidos.length !== itens.length) {
-        console.warn('⚠️ Alguns itens foram filtrados!', {
+        logger.warn('⚠️ Alguns itens foram filtrados!', {
           original: itens.length,
           validos: itensValidos.length,
         });
@@ -162,7 +158,7 @@ export default function EditOrderScreen() {
       const menu = await fetchMenuItems();
       setMenuItens(menu);
     } catch (error) {
-      console.error('❌ Erro ao carregar dados:', error);
+      logger.error('❌ Erro ao carregar dados:', error);
       Alert.alert('Erro', 'Não foi possível carregar o pedido. Tente novamente.');
       router.push('/orders');
     } finally {
@@ -248,7 +244,7 @@ export default function EditOrderScreen() {
                 ]
               );
             } catch (error) {
-              console.error('Erro ao atualizar pedido:', error);
+              logger.error('Erro ao atualizar pedido:', error);
               Alert.alert(
                 'Erro',
                 'Não foi possível atualizar o pedido. Tente novamente.'

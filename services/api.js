@@ -1,11 +1,12 @@
 // Serviço base para comunicação com a API
 
+import { logger } from '../utils/logger';
+
 // Para usar com emulador Android: 'http://10.0.2.2:8080/api'
 // Para usar com emulador iOS: 'http://localhost:8080/api'
 // Para usar com dispositivo físico: 'http://SEU_IP_LOCAL:8080/api'
 const getApiBaseUrl = () => {
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
-    // Android emulator por padrão, altere conforme necessário
     return 'http://10.0.2.2:8080/api';
   }
   return 'https://pedix-api-production.com/api';
@@ -39,7 +40,7 @@ export async function apiRequest(endpoint, options = {}) {
   }
 
   const fullUrl = `${API_BASE_URL}${endpoint}`;
-  console.log(`🌐 ${method} ${fullUrl}`, body ? { body: JSON.parse(config.body) } : '');
+  logger.log(`🌐 ${method} ${fullUrl}`, body ? { body: JSON.parse(config.body) } : '');
 
   try {
     const response = await fetch(fullUrl, config);
@@ -80,10 +81,10 @@ export async function apiRequest(endpoint, options = {}) {
     }
 
     const data = await response.json();
-    console.log(`✅ Resposta ${method} ${endpoint}:`, data);
+    logger.log(`✅ Resposta ${method} ${endpoint}:`, data);
     return data;
   } catch (error) {
-    console.error(`Erro na requisição ${endpoint}:`, error);
+    logger.error(`Erro na requisição ${endpoint}:`, error);
     throw error;
   }
 }

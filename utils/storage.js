@@ -2,16 +2,17 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { APP_CONFIG } from '../config/constants';
+import { logger } from './logger';
 
 // Limpa todos os dados do AsyncStorage (útil para testes)
 export async function clearAllData() {
   try {
     const keys = Object.values(APP_CONFIG.STORAGE_KEYS);
     await AsyncStorage.multiRemove(keys);
-    console.log('✅ Todos os dados foram limpos');
+    logger.log('✅ Todos os dados foram limpos');
     return true;
   } catch (error) {
-    console.error('Erro ao limpar dados:', error);
+    logger.error('Erro ao limpar dados:', error);
     return false;
   }
 }
@@ -20,10 +21,10 @@ export async function clearAllData() {
 export async function clearRestaurante() {
   try {
     await AsyncStorage.removeItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID);
-    console.log('✅ Restaurante foi limpo');
+    logger.log('✅ Restaurante foi limpo');
     return true;
   } catch (error) {
-    console.error('Erro ao limpar restaurante:', error);
+    logger.error('Erro ao limpar restaurante:', error);
     return false;
   }
 }
@@ -39,10 +40,10 @@ export async function showAllData() {
       data[keys[i]] = value;
     }
     
-    console.log('📦 Dados salvos:', data);
+    logger.log('📦 Dados salvos:', data);
     return data;
   } catch (error) {
-    console.error('Erro ao ler dados:', error);
+    logger.error('Erro ao ler dados:', error);
     return {};
   }
 }
