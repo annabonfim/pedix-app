@@ -72,6 +72,7 @@ A segunda sprint trouxe a **integração completa com a API Java do backend**, s
   - `storage.js` - Funções auxiliares para AsyncStorage
   - `time.js` - Funções de tempo, validação e formatação de datas
   - `validation.js` - Validações reutilizáveis
+  - `logger.js` - Logger condicional (só ativo em desenvolvimento)
 
 - ✅ **Configurações** (`config/`)
   - `constants.js` - Constantes da aplicação centralizadas
@@ -80,6 +81,7 @@ A segunda sprint trouxe a **integração completa com a API Java do backend**, s
 #### 🔧 Melhorias Técnicas:
 - ✅ **Integração com API Java** - Substituição completa de dados mockados por API real
 - ✅ Configuração de **ESLint** e **Prettier** para padronização de código
+- ✅ **Logger condicional** - Sistema de logging que só funciona em desenvolvimento
 - ✅ Refatoração das telas existentes para usar novos componentes
 - ✅ Melhorias no gerenciamento de estado (`CartContext.jsx`)
 - ✅ Integração de validações de restaurante
