@@ -10,6 +10,7 @@ import { fetchMenuItemById } from '../services/menuService';
 import { APP_CONFIG } from '../config/constants';
 import { hasSelectedRestaurante } from '../utils/validation';
 import { canEditPedido, formatPedidoDate, getTimeRemaining, translateStatus } from '../utils/time';
+import { logger } from '../utils/logger';
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -43,7 +44,7 @@ export default function OrdersScreen() {
             }, 500);
           }
         } catch (e) {
-          console.warn('Erro ao recarregar mesa:', e);
+          logger.warn('Erro ao recarregar mesa:', e);
         }
       };
       
@@ -72,7 +73,7 @@ export default function OrdersScreen() {
         setLoading(false);
       }
     } catch (e) {
-      console.warn('Falha ao carregar número da mesa', e);
+      logger.warn('Falha ao carregar número da mesa', e);
       setLoading(false);
     }
   };
@@ -121,7 +122,7 @@ export default function OrdersScreen() {
               price: item.price || 0,
             };
           } catch (error) {
-            console.warn(`Erro ao buscar item ${itemId}:`, error);
+            logger.warn(`Erro ao buscar item ${itemId}:`, error);
             return null;
           }
         });
@@ -143,7 +144,7 @@ export default function OrdersScreen() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error);
+      logger.error('Erro ao carregar pedidos:', error);
       // Só mostra alerta se não estiver apenas atualizando silenciosamente
       if (showLoading) {
         Alert.alert('Erro', 'Não foi possível carregar os pedidos. Verifique sua conexão.');

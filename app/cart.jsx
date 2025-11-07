@@ -10,6 +10,7 @@ import { useCart } from '../context/CartContext';
 import { createPedido } from '../services/pedidoService';
 import { APP_CONFIG } from '../config/constants';
 import { hasSelectedRestaurante } from '../utils/validation';
+import { logger } from '../utils/logger';
 
 export default function CartScreen() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function CartScreen() {
       const saved = await AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER);
       if (saved) setTableNumber(saved);
     } catch (e) {
-      console.warn('Falha ao carregar número da mesa salvo', e);
+      logger.warn('Falha ao carregar número da mesa salvo', e);
     }
   };
 
@@ -169,7 +170,7 @@ export default function CartScreen() {
       clearCart();
       router.push('/orders');
     } catch (error) {
-      console.error('Erro ao enviar pedido:', error);
+      logger.error('Erro ao enviar pedido:', error);
       Alert.alert(
         'Erro',
         error.message || 'Não foi possível enviar o pedido. Verifique sua conexão e tente novamente.'

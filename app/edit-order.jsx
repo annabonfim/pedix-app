@@ -49,6 +49,7 @@ export default function EditOrderScreen() {
       logger.log('📦 Pedido carregado:', {
         id: pedido.id,
         itensCount: pedido.itens?.length || 0,
+        itens: pedido.itens,
       });
       
       setPedidoOriginal(pedido);
@@ -66,7 +67,7 @@ export default function EditOrderScreen() {
       
       // Valida que tem itens
       const itensDoPedido = pedido.itens || [];
-      logger.log('📝 Itens do pedido na API:', itensDoPedido.length);
+      logger.log('📝 Itens do pedido na API:', itensDoPedido);
       
       if (itensDoPedido.length === 0) {
         logger.warn('⚠️ Pedido sem itens!');
@@ -104,7 +105,10 @@ export default function EditOrderScreen() {
           try {
             logger.log(`  Buscando item completo ${itemCardapioId}...`);
             const itemCompleto = await fetchMenuItemById(itemCardapioId);
-            logger.log(`  ✅ Item ${itemCardapioId} carregado`);
+            logger.log(`  ✅ Item ${itemCardapioId} carregado:`, {
+              name: itemCompleto.name,
+              price: itemCompleto.price,
+            });
             
             return {
               id: itemCardapioId.toString(),
@@ -127,7 +131,7 @@ export default function EditOrderScreen() {
         }
         
         // Fallback final
-        logger.warn(`  ⚠️ Item sem ID`);
+        logger.warn(`  ⚠️ Item sem ID:`, item);
         return {
           id: itemCardapioId?.toString() || '0',
           name: `Item ${itemCardapioId || 'Desconhecido'}`,
@@ -139,7 +143,8 @@ export default function EditOrderScreen() {
       
       const itens = await Promise.all(itensPromises);
       
-      logger.log('✅ Itens processados:', itens.length);
+      logger.log('✅ Itens processados:', itens);
+      logger.log('📋 Quantidade de itens no pedido:', itens.length);
       
       // Filtra apenas itens válidos (com ID)
       const itensValidos = itens.filter(item => item && item.id);

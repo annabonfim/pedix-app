@@ -7,6 +7,7 @@ import { Card } from '../components/Card';
 import { Dropdown } from '../components/Dropdown';
 import { APP_CONFIG, RESTAURANTES } from '../config/constants';
 import { isRestauranteValido } from '../utils/validation';
+import { logger } from '../utils/logger';
 
 export default function Scan() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function Scan() {
         setSelectedRestaurante(id);
       }
     } catch (e) {
-      console.warn('Falha ao carregar dados salvos', e);
+      logger.warn('Falha ao carregar dados salvos', e);
     }
   };
 
@@ -72,7 +73,7 @@ export default function Scan() {
       
       router.push('/menu');
     } catch (e) {
-      console.warn('Falha ao salvar dados', e);
+      logger.warn('Falha ao salvar dados', e);
       Alert.alert('Erro', 'Não foi possível salvar os dados. Tente novamente.');
     }
   };

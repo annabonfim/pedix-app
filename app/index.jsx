@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { APP_CONFIG } from '../config/constants';
+import { logger } from '../utils/logger';
 
 export default function Home() {
   const router = useRouter(); 
@@ -16,7 +17,7 @@ export default function Home() {
         const savedName = await AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.USER_NAME);
         if (savedName) setName(savedName);
       } catch (e) {
-        console.warn('Falha ao carregar nome salvo', e);
+        logger.warn('Falha ao carregar nome salvo', e);
       }
     })();
   }, []);
@@ -30,7 +31,7 @@ export default function Home() {
 
       router.push('/scan');
     } catch (e) {
-      console.warn('Falha ao salvar dados', e);
+      logger.warn('Falha ao salvar dados', e);
       router.push('/scan');
     }
   };

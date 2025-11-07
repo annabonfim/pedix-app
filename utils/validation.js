@@ -2,6 +2,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { APP_CONFIG, RESTAURANTE_VALIDO_ID } from '../config/constants';
+import { logger } from './logger';
 
 // Verifica se o usuário selecionou um restaurante
 export async function hasSelectedRestaurante() {
@@ -13,7 +14,7 @@ export async function hasSelectedRestaurante() {
     const id = parseInt(restauranteId, 10);
     return id === RESTAURANTE_VALIDO_ID;
   } catch (error) {
-    console.warn('Erro ao verificar restaurante:', error);
+    logger.warn('Erro ao verificar restaurante:', error);
     return false;
   }
 }

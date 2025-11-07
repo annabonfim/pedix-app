@@ -8,6 +8,7 @@ import { ItemImage } from '../components/ItemImage';
 import { fetchMenuItems, groupItemsByCategory } from '../services/menuService';
 import { APP_CONFIG } from '../config/constants';
 import { hasSelectedRestaurante } from '../utils/validation';
+import { logger } from '../utils/logger';
 
 export default function Menu() {
   const router = useRouter();
@@ -50,7 +51,7 @@ export default function Menu() {
       await loadTableNumber();
       await loadMenuItems();
     } catch (error) {
-      console.error('Erro em checkRestaurante:', error);
+      logger.error('Erro em checkRestaurante:', error);
       setError('Erro ao verificar restaurante');
       setLoading(false);
     }
@@ -61,7 +62,7 @@ export default function Menu() {
       const saved = await AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER);
       if (saved) setTableNumber(saved);
     } catch (e) {
-      console.warn('Falha ao carregar número da mesa salvo', e);
+      logger.warn('Falha ao carregar número da mesa salvo', e);
     }
   };
 
@@ -75,7 +76,7 @@ export default function Menu() {
       
       // Ordena as categorias conforme a ordem definida: Pratos, Bebidas, Sobremesas
       const availableCategories = Object.keys(grouped);
-      console.log('📦 Categorias disponíveis da API:', availableCategories);
+      logger.log('📦 Categorias disponíveis da API:', availableCategories);
       
       // Função para normalizar categoria (case-insensitive)
       const normalizeCategory = (cat) => {
@@ -124,7 +125,7 @@ export default function Menu() {
         }
       });
       
-      console.log('🔍 Categorias encontradas na ordem:', orderedCategories);
+      logger.log('🔍 Categorias encontradas na ordem:', orderedCategories);
       
       // Adiciona categorias que não estão na ordem definida (caso existam)
       const remainingCategories = availableCategories.filter(cat => 
@@ -133,14 +134,14 @@ export default function Menu() {
       
       const finalCategories = [...orderedCategories, ...remainingCategories];
       
-      console.log('✅ Categorias ordenadas FINAIS:', finalCategories);
+      logger.log('✅ Categorias ordenadas FINAIS:', finalCategories);
       
       if (finalCategories.length > 0) {
         setCategories(finalCategories);
         setSelectedCategory(finalCategories[0]);
       }
     } catch (err) {
-      console.error('Erro ao carregar cardápio:', err);
+      logger.error('Erro ao carregar cardápio:', err);
       setError('Não foi possível carregar o cardápio. Verifique sua conexão.');
       Alert.alert('Erro', 'Não foi possível carregar o cardápio. Tente novamente.');
     } finally {

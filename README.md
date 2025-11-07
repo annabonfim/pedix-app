@@ -171,6 +171,11 @@ npm start
 - Use o restaurante **"Italiano"** (ID 1) — único integrado ao backend
 - Informe mesas entre **1 e 10** (as mesmas usadas no backend)
 - O scanner de QR Code ainda é mockado; utilize a entrada manual
+- Para começar do zero em desenvolvimento, rode `clearAllData()` no console do Metro
+
+## 📹 Vídeo Demonstrativo
+
+- [Assista ao walkthrough da Sprint 2](https://youtu.be/bAi_9F6_JrE)
 
 ## 📁 Estrutura do Projeto
 
