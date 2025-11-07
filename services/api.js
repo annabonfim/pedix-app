@@ -5,8 +5,12 @@ import { logger } from '../utils/logger';
 // Para usar com emulador Android: 'http://10.0.2.2:8080/api'
 // Para usar com emulador iOS: 'http://localhost:8080/api'
 // Para usar com dispositivo físico: 'http://SEU_IP_LOCAL:8080/api'
+// Para usar na web: 'http://localhost:8080/api'
+// 
+// ALTERE A URL ABAIXO CONFORME NECESSÁRIO:
 const getApiBaseUrl = () => {
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    // Android emulator por padrão - ALTERE AQUI SE PRECISAR
     return 'http://10.0.2.2:8080/api';
   }
   return 'https://pedix-api-production.com/api';
@@ -84,6 +88,14 @@ export async function apiRequest(endpoint, options = {}) {
     logger.log(`✅ Resposta ${method} ${endpoint}:`, data);
     return data;
   } catch (error) {
+    // Se for erro de CORS ou rede, dá mensagem mais clara
+    if (error.message && error.message.includes('Failed to fetch')) {
+      const corsError = new Error('Erro de conexão. Verifique se o backend está rodando e se CORS está configurado.');
+      corsError.status = 'NETWORK_ERROR';
+      logger.error(`Erro de rede/CORS na requisição ${endpoint}:`, corsError);
+      throw corsError;
+    }
+    
     logger.error(`Erro na requisição ${endpoint}:`, error);
     throw error;
   }

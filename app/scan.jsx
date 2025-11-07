@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Alert, ScrollView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Dropdown } from '../components/Dropdown';
-import { APP_CONFIG, RESTAURANTES, RESTAURANTE_VALIDO_ID } from '../config/constants';
-import { isRestauranteValido, hasSelectedRestaurante } from '../utils/validation';
+import { APP_CONFIG, RESTAURANTES } from '../config/constants';
+import { isRestauranteValido } from '../utils/validation';
 
 export default function Scan() {
   const router = useRouter();
@@ -87,56 +87,61 @@ export default function Scan() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Conectar à Mesa</Text>
-      {params.name && (
-        <Text style={styles.welcomeText}>Olá, {params.name}! 👋</Text>
-      )}
-      <Text style={styles.subtitle}>
-        Escaneie o QR Code ou digite o número da mesa
-      </Text>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>Conectar à Mesa</Text>
+        {params.name && (
+          <Text style={styles.welcomeText}>Olá, {params.name}! 👋</Text>
+        )}
+        <Text style={styles.subtitle}>
+          Escaneie o QR Code ou digite o número da mesa
+        </Text>
 
-      <Card onPress={handleQRCodePress}>
-        <View style={styles.qrPlaceholder}>
-          <Text style={styles.qrIcon}>📷</Text>
-          <Text style={styles.qrText}>Tocar para escanear QR Code</Text>
-          <Text style={styles.qrSubtext}>(Em breve)</Text>
+        <Card onPress={handleQRCodePress}>
+          <View style={styles.qrPlaceholder}>
+            <Text style={styles.qrIcon}>📷</Text>
+            <Text style={styles.qrText}>Tocar para escanear QR Code</Text>
+            <Text style={styles.qrSubtext}>(Em breve)</Text>
+          </View>
+        </Card>
+
+        <View style={styles.divider}>
+          <View style={styles.line} />
+          <Text style={styles.dividerText}>OU</Text>
+          <View style={styles.line} />
         </View>
-      </Card>
 
-      <View style={styles.divider}>
-        <View style={styles.line} />
-        <Text style={styles.dividerText}>OU</Text>
-        <View style={styles.line} />
-      </View>
+        <Card>
+          <Text style={styles.label}>Selecione o restaurante</Text>
+          <Dropdown
+            options={RESTAURANTES}
+            selectedValue={selectedRestaurante}
+            onSelect={setSelectedRestaurante}
+            placeholder="Escolha um restaurante"
+          />
+        </Card>
 
-      <Card>
-        <Text style={styles.label}>Selecione o restaurante</Text>
-        <Dropdown
-          options={RESTAURANTES}
-          selectedValue={selectedRestaurante}
-          onSelect={setSelectedRestaurante}
-          placeholder="Escolha um restaurante"
+        <Card>
+          <Text style={styles.label}>Digite o número da mesa</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: 5"
+            value={tableNumber}
+            onChangeText={setTableNumber}
+            keyboardType="numeric"
+            placeholderTextColor="#95A5A6"
+          />
+        </Card>
+
+        <Button 
+          title="Continuar" 
+          onPress={handleTableSubmit}
+          disabled={!tableNumber || !selectedRestaurante}
         />
-      </Card>
-
-      <Card>
-        <Text style={styles.label}>Digite o número da mesa</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: 5"
-          value={tableNumber}
-          onChangeText={setTableNumber}
-          keyboardType="numeric"
-          placeholderTextColor="#95A5A6"
-        />
-      </Card>
-
-      <Button 
-        title="Continuar" 
-        onPress={handleTableSubmit}
-        disabled={!tableNumber || !selectedRestaurante}
-      />
-
+      </ScrollView>
     </View>
   );
 }
@@ -145,11 +150,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
-    padding: 24,
-    marginTop: 60,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: Platform.OS === 'web' ? 20 : 24,
+    paddingTop: Platform.OS === 'web' ? 20 : 60,
+    paddingBottom: Platform.OS === 'web' ? 40 : 24,
+    maxWidth: Platform.OS === 'web' ? 600 : '100%',
+    alignSelf: Platform.OS === 'web' ? 'center' : 'stretch',
   },
   title: {
-    fontSize: 28,
+    fontSize: Platform.OS === 'web' ? 24 : 28,
     fontWeight: '700',
     color: '#1E3A5F',
     marginBottom: 8,
@@ -170,10 +183,10 @@ const styles = StyleSheet.create({
   },
   qrPlaceholder: {
     alignItems: 'center',
-    padding: 32,
+    padding: Platform.OS === 'web' ? 24 : 32,
   },
   qrIcon: {
-    fontSize: 64,
+    fontSize: Platform.OS === 'web' ? 48 : 64,
     marginBottom: 16,
   },
   qrText: {
@@ -212,8 +225,8 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#F8F9FA',
     borderRadius: 20,
-    padding: 16,
-    fontSize: 16,
+    padding: Platform.OS === 'web' ? 12 : 16,
+    fontSize: Platform.OS === 'web' ? 14 : 16,
     color: '#2C3E50',
   },
 });

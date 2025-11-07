@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CartProvider } from '../context/CartContext';
 import { APP_CONFIG, RESTAURANTE_VALIDO_ID } from '../config/constants';
+import { clearAllData } from '../utils/storage';
 
 const Icon = ({ name, size, color }) => {
   const icons = {
@@ -26,25 +27,36 @@ const Icon = ({ name, size, color }) => {
 export default function TabLayout() {
   const [hasRestaurante, setHasRestaurante] = useState(false);
 
+  const checkRestaurante = useCallback(async () => {
+    try {
+      const restauranteId = await AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID);
+      const isValid = restauranteId && parseInt(restauranteId, 10) === RESTAURANTE_VALIDO_ID;
+      setHasRestaurante(isValid);
+    } catch (error) {
+      setHasRestaurante(false);
+    }
+  }, []);
+
   useEffect(() => {
-    // Verifica se tem restaurante selecionado
-    const checkRestaurante = async () => {
-      try {
-        const restauranteId = await AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID);
-        const isValid = restauranteId && parseInt(restauranteId, 10) === RESTAURANTE_VALIDO_ID;
-        setHasRestaurante(isValid);
-      } catch (error) {
-        setHasRestaurante(false);
+    let interval;
+
+    const init = async () => {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
+        await clearAllData();
       }
+
+      await checkRestaurante();
+      interval = setInterval(checkRestaurante, 1000);
     };
 
-    checkRestaurante();
-    
-    // Verifica periodicamente (a cada 1 segundo)
-    const interval = setInterval(checkRestaurante, 1000);
-    
-    return () => clearInterval(interval);
-  }, []);
+    init();
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [checkRestaurante]);
 
   return (
     <CartProvider>
