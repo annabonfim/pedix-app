@@ -168,6 +168,24 @@ npm start
    - `a` para abrir no emulador Android
    - `w` para abrir no navegador web
 
+## 🧪 Como Testar o Aplicativo
+
+Para testar as funcionalidades do app:
+
+1. **Restaurante**: Selecione o restaurante **"Italiano"**
+2. **Mesa**: Use números de mesa entre **1 e 11**
+3. **QR Code**: A leitura real de QR Code será implementada em sprints futuras. Por enquanto, use o campo de entrada manual na tela de scan.
+
+### Fluxo de Teste Recomendado:
+1. Entre com seu nome na tela inicial
+2. Na tela de scan:
+   - Selecione "Italiano" no dropdown de restaurantes
+   - Digite um número de mesa (1-11)
+3. Navegue pelo cardápio e adicione itens
+4. Finalize o pedido no carrinho
+5. Acompanhe o status na tela de pedidos
+6. Teste a edição de pedidos (primeiros 5 minutos)
+
 ## 📁 Estrutura do Projeto
 
 ```
@@ -215,9 +233,11 @@ O aplicativo utiliza variáveis de ambiente e configurações em `config/constan
 ## 📱 Funcionalidades Detalhadas
 
 ### Escaneamento de QR Code
-- Escaneie o QR Code da mesa para vincular sua sessão
+- Interface preparada para escaneamento de QR Code (implementação futura)
+- Por enquanto, entrada manual do número da mesa
 - O número da mesa é salvo automaticamente
 - **Sprint 2**: Adicionado dropdown para seleção de restaurante
+- **Nota**: A leitura real de QR Code será implementada em sprints futuras
 
 ### Cardápio
 - Navegação por categorias
