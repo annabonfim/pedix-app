@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ItemImage } from '../components/ItemImage';
 import { fetchPedidoById, atualizarPedido } from '../services/pedidoService';
 import { fetchMenuItems, fetchMenuItemById } from '../services/menuService';
+import { pedidoKeys } from '../hooks/usePedidos';
 import { canEditPedido } from '../utils/time';
 import { logger } from '../utils/logger';
 
@@ -14,6 +16,7 @@ export default function EditOrderScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { pedidoId, comandaId } = params;
+  const queryClient = useQueryClient();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -237,7 +240,10 @@ export default function EditOrderScreen() {
               }));
               
               await atualizarPedido(pedidoId, parseInt(comandaId, 10), items, observacao.trim());
-              
+
+              queryClient.invalidateQueries({ queryKey: pedidoKeys.byComanda(parseInt(comandaId, 10)) });
+              queryClient.invalidateQueries({ queryKey: pedidoKeys.detail(pedidoId) });
+
               Alert.alert(
                 'Sucesso!',
                 'Pedido atualizado com sucesso! 🎉',
