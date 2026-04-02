@@ -1,51 +1,79 @@
-// Utilitários para AsyncStorage
+// utils/storage.js — substitui o arquivo existente
+// Adiciona funções de token JWT ao storage já existente
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { APP_CONFIG } from '../config/constants';
 import { logger } from './logger';
 
-// Limpa todos os dados do AsyncStorage (útil para testes)
+const TOKEN_KEY = 'auth:token';
+const USER_KEY = 'auth:user';
+
+// ─── TOKEN ────────────────────────────────────────────────────────────────────
+export async function saveToken(token) {
+  try {
+    await AsyncStorage.setItem(TOKEN_KEY, token);
+  } catch (e) {
+    logger.error('Erro ao salvar token:', e);
+    throw e;
+  }
+}
+
+export async function getToken() {
+  try {
+    return await AsyncStorage.getItem(TOKEN_KEY);
+  } catch (e) {
+    logger.error('Erro ao ler token:', e);
+    return null;
+  }
+}
+
+export async function removeToken() {
+  try {
+    await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+  } catch (e) {
+    logger.error('Erro ao remover token:', e);
+  }
+}
+
+// ─── USER ─────────────────────────────────────────────────────────────────────
+export async function saveUser(user) {
+  try {
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
+  } catch (e) {
+    logger.error('Erro ao salvar usuário:', e);
+  }
+}
+
+export async function getSavedUser() {
+  try {
+    const raw = await AsyncStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ─── GENERIC ─────────────────────────────────────────────────────────────────
 export async function clearAllData() {
   try {
-    const keys = Object.values(APP_CONFIG.STORAGE_KEYS);
-    await AsyncStorage.multiRemove(keys);
-    logger.log('✅ Todos os dados foram limpos');
-    return true;
-  } catch (error) {
-    logger.error('Erro ao limpar dados:', error);
-    return false;
+    await AsyncStorage.clear();
+  } catch (e) {
+    logger.error('Erro ao limpar dados:', e);
   }
 }
 
-// Limpa apenas o restaurante selecionado
-export async function clearRestaurante() {
+export async function getData(key) {
   try {
-    await AsyncStorage.removeItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID);
-    logger.log('✅ Restaurante foi limpo');
-    return true;
-  } catch (error) {
-    logger.error('Erro ao limpar restaurante:', error);
-    return false;
+    return await AsyncStorage.getItem(key);
+  } catch (e) {
+    logger.error(`Erro ao ler chave ${key}:`, e);
+    return null;
   }
 }
 
-// Mostra todos os dados salvos (útil para debug)
-export async function showAllData() {
+export async function setData(key, value) {
   try {
-    const keys = Object.values(APP_CONFIG.STORAGE_KEYS);
-    const data = {};
-    
-    for (let i = 0; i < keys.length; i++) {
-      const value = await AsyncStorage.getItem(keys[i]);
-      data[keys[i]] = value;
-    }
-    
-    logger.log('📦 Dados salvos:', data);
-    return data;
-  } catch (error) {
-    logger.error('Erro ao ler dados:', error);
-    return {};
+    await AsyncStorage.setItem(key, value);
+  } catch (e) {
+    logger.error(`Erro ao salvar chave ${key}:`, e);
   }
 }
-
-
