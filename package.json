@@ -11,7 +11,9 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@tanstack/react-query": "^5.95.2",
     "expo": "^54.0.12",
+    "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.9",
     "expo-linking": "~8.0.8",
     "expo-router": "~6.0.10",
@@ -23,5 +25,9 @@
     "react-native-screens": "~4.16.0",
     "react-native-web": "^0.21.2"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
+  }
 }
