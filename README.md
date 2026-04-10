@@ -175,7 +175,7 @@ npm start
 
 ### 🟨 API Java (Cardápio, Pedidos e Mesas)
 
-**Repositório:** [TODO: adicionar link]
+**Repositório:** [github.com/annabonfim/pedix-api](https://github.com/annabonfim/pedix-api)
 
 ```bash
 git clone <url-da-api-java>
