@@ -217,7 +217,7 @@ Roda em `http://localhost:5070`. Requer .NET 8 SDK + Oracle.
 
 ## 📹 Vídeo Demonstrativo
 
-- **Sprint 3:** [TODO: adicionar link do vídeo]
+- **Sprint 3:** https://youtu.be/bcCg763gASI
 - **Sprint 2:** https://youtu.be/bAi_9F6_JrE
 
 ---
