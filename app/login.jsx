@@ -24,6 +24,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const isAdmin = role === 'ADMIN';
+  const isGerente = role === 'GERENTE';
 
   const handleLogin = async () => {
     if (!email.trim()) { Alert.alert('Campo obrigatório', 'Informe seu e-mail.'); return; }
@@ -65,24 +66,34 @@ export default function LoginScreen() {
           {/* Toggle de perfil */}
           <View style={[s.roleRow, { backgroundColor: theme.background }]}>
             <TouchableOpacity
-              style={[s.roleBtn, !isAdmin && s.roleBtnActive]}
+              style={[s.roleBtn, role === 'CLIENTE' && s.roleBtnActive]}
               onPress={() => { setRole('CLIENTE'); setEmail(''); setSenha(''); }}
             >
               <Ionicons
-                name="person-circle-outline" size={18}
-                color={!isAdmin ? '#FFFFFF' : colors.textSub}
+                name="person-circle-outline" size={16}
+                color={role === 'CLIENTE' ? '#FFFFFF' : colors.textSub}
               />
-              <Text style={[s.roleBtnText, !isAdmin && s.roleBtnTextActive]}> Cliente</Text>
+              <Text style={[s.roleBtnText, role === 'CLIENTE' && s.roleBtnTextActive]}> Cliente</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[s.roleBtn, isAdmin && s.roleBtnActive]}
+              style={[s.roleBtn, role === 'ADMIN' && s.roleBtnActive]}
               onPress={() => { setRole('ADMIN'); setEmail(''); setSenha(''); }}
             >
               <Ionicons
-                name="shield-checkmark-outline" size={18}
-                color={isAdmin ? '#FFFFFF' : colors.textSub}
+                name="shield-checkmark-outline" size={16}
+                color={role === 'ADMIN' ? '#FFFFFF' : colors.textSub}
               />
-              <Text style={[s.roleBtnText, isAdmin && s.roleBtnTextActive]}> Garçom</Text>
+              <Text style={[s.roleBtnText, role === 'ADMIN' && s.roleBtnTextActive]}> Garçom</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.roleBtn, isGerente && s.roleBtnActive]}
+              onPress={() => { setRole('GERENTE'); setEmail(''); setSenha(''); }}
+            >
+              <Ionicons
+                name="briefcase-outline" size={16}
+                color={isGerente ? '#FFFFFF' : colors.textSub}
+              />
+              <Text style={[s.roleBtnText, isGerente && s.roleBtnTextActive]}> Gerente</Text>
             </TouchableOpacity>
           </View>
 
@@ -142,7 +153,7 @@ export default function LoginScreen() {
         </View>
 
         {/* Link para cadastro (apenas clientes) */}
-        {!isAdmin && (
+        {!isAdmin && !isGerente && (
           <TouchableOpacity style={s.signupLink} onPress={() => router.push('/signup')}>
             <Text style={s.signupLinkText}>
               Não tem conta?{' '}
@@ -163,7 +174,13 @@ export default function LoginScreen() {
           <View style={[s.legendRow, { marginTop: 6 }]}>
             <Ionicons name="shield-checkmark-outline" size={15} color={colors.orange} />
             <Text style={[s.legendText, { color: theme.textSecondary }]}>
-              <Text style={{ fontWeight: '700' }}>Garçom / Admin</Text> — gerencia mesas e pedidos
+              <Text style={{ fontWeight: '700' }}>Garçom</Text> — gerencia mesas e pedidos
+            </Text>
+          </View>
+          <View style={[s.legendRow, { marginTop: 6 }]}>
+            <Ionicons name="briefcase-outline" size={15} color="#8E24AA" />
+            <Text style={[s.legendText, { color: theme.textSecondary }]}>
+              <Text style={{ fontWeight: '700' }}>Gerente</Text> — tudo do garçom + gerencia o cardápio
             </Text>
           </View>
         </View>

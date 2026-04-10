@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { useMenuItems } from '../hooks/useMenuItems';
+import { useMenuItems, useDeleteMenuItem } from '../hooks/useMenuItems';
 import { useCart } from '../context/CartContext';
 import { ItemImage } from '../components/ItemImage';
 import { colors, shared, radius, typography } from '../styles/theme';
@@ -17,8 +17,9 @@ const CATS = [ALL, ...CATEGORIES];
 export default function MenuScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, isGerente } = useAuth();
   const { addItem, cartCount } = useCart();
+  const deleteMutation = useDeleteMenuItem();
 
   const [selectedCat, setSelectedCat] = useState(ALL);
   const [search, setSearch] = useState('');
@@ -26,6 +27,28 @@ export default function MenuScreen() {
   const { data: items = [], isLoading, refetch, isFetching } = useMenuItems(
     selectedCat.value
   );
+
+  const handleDelete = (item) => {
+    Alert.alert(
+      'Remover item',
+      `Deseja remover "${item.name}" do cardápio?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteMutation.mutateAsync(item.id);
+              Alert.alert('Sucesso', 'Item removido do cardápio.');
+            } catch (error) {
+              Alert.alert('Erro', 'Não foi possível remover o item.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const categoryOrder = { PRATO: 0, BEBIDA: 1, SOBREMESA: 2 };
 
@@ -111,6 +134,16 @@ export default function MenuScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={s.list}>
+          {isGerente && (
+            <TouchableOpacity
+              style={s.newItemBtn}
+              onPress={() => router.push('/gerente/item-form')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle" size={22} color="#FFFFFF" />
+              <Text style={s.newItemBtnText}>Adicionar novo item ao cardápio</Text>
+            </TouchableOpacity>
+          )}
           {filtered.length === 0 ? (
             <View style={s.empty}>
               <Ionicons name="restaurant-outline" size={56} color={colors.textMuted} />
@@ -138,12 +171,40 @@ export default function MenuScreen() {
                     <Text style={[typography.price, { color: colors.orange }]}>
                       R$ {item.price.toFixed(2)}
                     </Text>
-                    <TouchableOpacity
-                      style={s.addBtn}
-                      onPress={() => addItem(item)}
-                    >
-                      <Ionicons name="add" size={18} color="#FFFFFF" />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {isGerente && (
+                        <>
+                          <TouchableOpacity
+                            style={[s.actionBtn, { backgroundColor: colors.blue }]}
+                            onPress={() => router.push({
+                              pathname: '/gerente/item-form',
+                              params: {
+                                id: item.id,
+                                name: item.name,
+                                price: String(item.price),
+                                category: item.category,
+                                description: item.description || '',
+                                image: item.image || '',
+                              },
+                            })}
+                          >
+                            <Ionicons name="pencil" size={14} color="#FFFFFF" />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[s.actionBtn, { backgroundColor: '#E53935' }]}
+                            onPress={() => handleDelete(item)}
+                          >
+                            <Ionicons name="trash" size={14} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        </>
+                      )}
+                      <TouchableOpacity
+                        style={s.addBtn}
+                        onPress={() => addItem(item)}
+                      >
+                        <Ionicons name="add" size={18} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -220,6 +281,19 @@ const s = StyleSheet.create({
   itemFooter: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', marginTop: 8,
+  },
+  newItemBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.orange, borderRadius: 10,
+    paddingVertical: 10, paddingHorizontal: 16, gap: 6,
+    alignSelf: 'center', marginBottom: 4,
+  },
+  newItemBtnText: {
+    color: '#FFFFFF', fontSize: 13, fontWeight: '700',
+  },
+  actionBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
   },
   addBtn: {
     width: 30, height: 30, borderRadius: 15,

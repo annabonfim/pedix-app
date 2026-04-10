@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import {
   loginAsCliente,
   loginAsAdmin,
+  loginAsGerente,
   registerCliente,
   logout as apiLogout,
   getCurrentUser,
@@ -61,12 +62,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // role: 'CLIENTE' | 'ADMIN'
-  // Ambos usam email + senha
+  // role: 'CLIENTE' | 'ADMIN' | 'GERENTE'
 
   const login = useCallback(async (email, senha, role) => {
     let result;
-    if (role === 'ADMIN') {
+    if (role === 'GERENTE') {
+      result = await loginAsGerente(email, senha);
+    } else if (role === 'ADMIN') {
       result = await loginAsAdmin(email, senha);
     } else {
       result = await loginAsCliente(email, senha);
@@ -93,7 +95,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   // helpers
-  const isAdmin = user?.role === ROLES.ADMIN || user?.perfil === ROLES.ADMIN;
+  const isGerente = user?.role === ROLES.GERENTE;
+  const isAdmin = isGerente || user?.role === ROLES.ADMIN || user?.perfil === ROLES.ADMIN;
   const isAuthenticated = !!token && !!user;
 
   const value = {
@@ -102,6 +105,7 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated,
     isAdmin,
+    isGerente,
     login,
     logout,
     register,

@@ -13,12 +13,13 @@
 
 import { saveToken, removeToken, getToken, saveUser, getSavedUser } from '../utils/storage';
 import { logger } from '../utils/logger';
-import { MOCK_CLIENTES, MOCK_GARCONS, mockDelay } from './mockData';
+import { MOCK_CLIENTES, MOCK_GARCONS, MOCK_GERENTES, mockDelay } from './mockData';
 
 // Roles
 export const ROLES = {
   CLIENTE: 'CLIENTE',
   ADMIN: 'ADMIN', // Garçom no sistema C#
+  GERENTE: 'GERENTE', // Gerente — acesso completo + CRUD do cardápio
 };
 
 // Gera um token local a partir do ID e role do usuário
@@ -95,6 +96,44 @@ export async function loginAsAdmin(email, senha) {
     return { user, token };
   } catch (error) {
     logger.error('Erro no login de admin:', error);
+    throw error;
+  }
+}
+
+// ─── LOGIN COMO GERENTE ─────────────────────────────────────────────────────
+// Valida email + senha contra a lista mockada de gerentes
+export async function loginAsGerente(email, senha) {
+  try {
+    await mockDelay();
+    const emailLower = email.toLowerCase().trim();
+
+    const gerente = MOCK_GERENTES.find((g) => {
+      return (
+        g.email.toLowerCase() === emailLower &&
+        g.senha === senha &&
+        g.ativo !== false
+      );
+    });
+
+    if (!gerente) {
+      throw new Error('E-mail ou senha incorretos, ou gerente inativo.');
+    }
+
+    const user = {
+      id: gerente.id,
+      nome: gerente.nome,
+      email: gerente.email,
+      telefone: gerente.telefone,
+      role: ROLES.GERENTE,
+    };
+
+    const token = generateLocalToken(user.id, ROLES.GERENTE);
+    await saveToken(token);
+    await saveUser(user);
+
+    return { user, token };
+  } catch (error) {
+    logger.error('Erro no login de gerente:', error);
     throw error;
   }
 }

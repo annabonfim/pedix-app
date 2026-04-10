@@ -53,6 +53,25 @@ export const MOCK_GARCONS = [
   },
 ];
 
+export const MOCK_GERENTES = [
+  {
+    id: 'mock-ger-1',
+    nome: 'Paula Oliveira',
+    email: 'paula@pedix.com',
+    senha: '123456',
+    telefone: '11977770001',
+    ativo: true,
+  },
+  {
+    id: 'mock-ger-2',
+    nome: 'Roberto Almeida',
+    email: 'roberto@pedix.com',
+    senha: '123456',
+    telefone: '11977770002',
+    ativo: true,
+  },
+];
+
 // Simula delay de rede
 export function mockDelay(ms = 400) {
   return new Promise((resolve) => setTimeout(resolve, ms));

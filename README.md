@@ -1,6 +1,6 @@
 # Pedix 🍽️
 
-Aplicativo mobile para gerenciamento de pedidos em restaurantes, desenvolvido com React Native e Expo. O Pedix permite que clientes selecionem sua mesa (via QR Code ou entrada manual), naveguem pelo cardápio, façam pedidos e acompanhem o status em tempo real. Garçons gerenciam mesas e pedidos por um painel administrativo.
+Aplicativo mobile para gerenciamento de pedidos em restaurantes, desenvolvido com React Native e Expo. O Pedix permite que clientes selecionem sua mesa (via QR Code ou entrada manual), naveguem pelo cardápio, façam pedidos e acompanhem o status em tempo real. Garçons gerenciam mesas e pedidos por um painel administrativo. Gerentes possuem acesso completo ao CRUD do cardápio.
 
 ---
 
@@ -20,10 +20,10 @@ Detalhada abaixo.
 
 ## ✨ Sprint 3 — O que foi implementado
 
-### 🔐 Autenticação com dois perfis
+### 🔐 Autenticação com três perfis
 
-- **Tela de Login** (`login.jsx`) — toggle entre Cliente e Garçom
-  - Ambos os perfis: login por e-mail + senha
+- **Tela de Login** (`login.jsx`) — toggle entre Cliente, Garçom e Gerente
+  - Todos os perfis: login por e-mail + senha
 - **Tela de Cadastro** (`signup.jsx`) — registro de novos clientes (nome, e-mail, senha, telefone)
 - **AuthContext** + **AuthGuard** para proteção de rotas
 - Token local gerado via `btoa(id:role:timestamp)`, persistido em AsyncStorage
@@ -42,6 +42,12 @@ O app exibe **tabs e fluxos diferentes** dependendo do tipo de usuário:
 - Login → Home (com resumo de mesas)
 - Tabs: Home, Cardápio, Mesas
 - Sem acesso a Carrinho, Pedidos ou Scan (gerencia tudo pelo Dashboard de Mesas)
+
+**Gerente:**
+- Tudo que o Garçom acessa + CRUD completo do Cardápio
+- Tabs: Home, Cardápio (com botões de editar/deletar/adicionar), Mesas
+- Botão "+" no header do cardápio para criar novos itens
+- Botões de editar e deletar em cada item do cardápio
 
 ### 🎨 Sistema de temas (light / dark mode)
 
@@ -74,13 +80,14 @@ O app exibe **tabs e fluxos diferentes** dependendo do tipo de usuário:
 - Dashboard de mesas do garçom agora usa dados reais do banco de dados
 - Entidade `Mesa`, Repository, Service e Controller seguindo o padrão do projeto
 
-### ✅ CRUD completo
+### ✅ CRUD completo de duas entidades
 
-| Entidade | Create | Read | Update | Delete |
-|----------|:---:|:---:|:---:|:---:|
-| **Pedidos (cliente)** | ✅ cart | ✅ orders | ✅ edit-order | ✅ cancelar |
-| **Status de pedido (garçom)** | — | ✅ mesa-pedidos | ✅ avançar status | — |
-| **Clientes** | ✅ signup | — | — | — |
+| Entidade | Create | Read | Update | Delete | Perfil |
+|----------|:---:|:---:|:---:|:---:|:---:|
+| **Pedidos** | ✅ carrinho | ✅ orders | ✅ edit-order | ✅ cancelar | Cliente |
+| **Itens do Cardápio** | ✅ item-form | ✅ menu | ✅ item-form | ✅ menu | Gerente |
+| **Status de pedido** | — | ✅ mesa-pedidos | ✅ avançar status | — | Garçom |
+| **Clientes** | ✅ signup | — | — | — | Cliente |
 
 ---
 
@@ -118,6 +125,12 @@ A autenticação utiliza a **API C#** (.NET), que já foi desenvolvida pela equi
 | joao@pedix.com | 123456 |
 | lucas@pedix.com | 123456 |
 | fernanda@pedix.com | 123456 |
+
+### Gerente
+| E-mail | Senha |
+|--------|-------|
+| paula@pedix.com | 123456 |
+| roberto@pedix.com | 123456 |
 
 > Também é possível cadastrar um novo cliente pela tela de signup (nome, e-mail, senha e telefone). O cadastro é válido apenas durante a sessão.
 
@@ -166,8 +179,9 @@ npm start
 **Dicas de teste:**
 - Use o restaurante **"Italiano"** (ID 1) — único integrado ao backend
 - Mesas de **1 a 11**
-- Cliente: faça login → selecione mesa → navegue pelo cardápio
+- Cliente: faça login → selecione mesa → navegue pelo cardápio → faça pedidos
 - Garçom: faça login → veja o resumo de mesas → acesse o dashboard
+- Gerente: faça login → acesse o cardápio → crie, edite ou remova itens
 
 ---
 
@@ -223,9 +237,11 @@ pedix/
 │   ├── cart.jsx                 # Carrinho
 │   ├── orders.jsx               # Pedidos
 │   ├── edit-order.jsx           # Edição de pedido
-│   └── admin/                   # Garçom (Sprint 3)
-│       ├── mesas.jsx            # Dashboard de mesas
-│       └── mesa-pedidos.jsx     # Pedidos por mesa
+│   ├── admin/                   # Garçom (Sprint 3)
+│   │   ├── mesas.jsx            # Dashboard de mesas
+│   │   └── mesa-pedidos.jsx     # Pedidos por mesa
+│   └── gerente/                 # Gerente (Sprint 3)
+│       └── item-form.jsx       # Criar/editar item do cardápio
 ├── components/                   # Componentes reutilizáveis
 │   ├── Button.jsx
 │   ├── Card.jsx
@@ -262,13 +278,13 @@ pedix/
 | Aspecto | Sprint 1 | Sprint 2 | Sprint 3 |
 |---------|----------|----------|----------|
 | **Dados** | Mockados local | API Java real | API Java (cardápio, pedidos, mesas) + login mockado |
-| **Telas** | 5 | 7 | 11 |
-| **Autenticação** | — | — | Login + cadastro (e-mail + senha) 🆕 |
+| **Telas** | 5 | 7 | 12 |
+| **Autenticação** | — | — | Login + cadastro (3 perfis) 🆕 |
 | **Admin** | — | — | Dashboard de mesas + gestão de status 🆕 |
 | **QR Code** | UI apenas | UI apenas | Câmera real 🆕 |
 | **Tema** | Claro | Claro | Light + Dark 🆕 |
 | **Navegação** | Fixa | Fixa | Condicional por perfil 🆕 |
-| **CRUD** | Básico | Pedidos completo | + Status + Cadastro 🆕 |
+| **CRUD** | Básico | Pedidos completo | + Cardápio (gerente) + Status + Cadastro 🆕 |
 | **Auto-refresh** | — | Pull manual | invalidateQueries + polling 🆕 |
 
 ---

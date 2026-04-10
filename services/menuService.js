@@ -51,6 +51,69 @@ export async function fetchMenuItems(categoria = null) {
   }
 }
 
+// Extrai o item da resposta da API (formato varia entre endpoints)
+function parseItemResponse(response) {
+  // POST/PUT retornam { mensagem, item, _links }
+  const item = response.item || response.content || response;
+  return {
+    id: String(item.id),
+    name: item.nome || item.name || '',
+    price: parseFloat(item.preco || item.price || 0),
+    category: item.categoria || item.category || 'PRATO',
+    description: item.descricao || item.description || '',
+    image: item.imagemUrl || item.image || '🍽️',
+    available: item.disponivel !== false,
+  };
+}
+
+// Cria um novo item no cardápio
+export async function createMenuItem(itemData) {
+  try {
+    const payload = {
+      nome: itemData.name,
+      preco: itemData.price,
+      categoria: itemData.category,
+      descricao: itemData.description || '',
+      disponivel: itemData.available !== false,
+      imagemUrl: itemData.image || null,
+    };
+    const response = await api.post('/item-cardapio', payload);
+    return parseItemResponse(response);
+  } catch (error) {
+    logger.error('Erro ao criar item:', error);
+    throw error;
+  }
+}
+
+// Atualiza um item existente
+export async function updateMenuItem(itemId, itemData) {
+  try {
+    const payload = {
+      nome: itemData.name,
+      preco: itemData.price,
+      categoria: itemData.category,
+      descricao: itemData.description || '',
+      disponivel: itemData.available !== false,
+      imagemUrl: itemData.image || null,
+    };
+    const response = await api.put(`/item-cardapio/${itemId}`, payload);
+    return parseItemResponse(response);
+  } catch (error) {
+    logger.error(`Erro ao atualizar item ${itemId}:`, error);
+    throw error;
+  }
+}
+
+// Deleta um item do cardápio
+export async function deleteMenuItem(itemId) {
+  try {
+    await api.delete(`/item-cardapio/${itemId}`);
+  } catch (error) {
+    logger.error(`Erro ao deletar item ${itemId}:`, error);
+    throw error;
+  }
+}
+
 // Busca um item específico por ID
 export async function fetchMenuItemById(itemId) {
   try {
