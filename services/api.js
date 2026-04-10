@@ -1,17 +1,23 @@
 // Serviço base para comunicação com a API
 
+import { Platform } from 'react-native';
 import { logger } from '../utils/logger';
 
-// Para usar com emulador Android: 'http://10.0.2.2:8080/api'
-// Para usar com emulador iOS: 'http://localhost:8080/api'
-// Para usar com dispositivo físico: 'http://SEU_IP_LOCAL:8080/api'
-// Para usar na web: 'http://localhost:8080/api'
-// 
-// ALTERE A URL ABAIXO CONFORME NECESSÁRIO:
+// Detecta automaticamente a URL correta:
+// - Android emulator: 10.0.2.2 (proxy especial do emulador)
+// - iOS simulator: localhost
+// - Dispositivo físico (Android/iOS): IP local da máquina
+const LOCAL_IP = '192.168.4.55'; // ← seu IP local (ifconfig | grep inet)
+
 const getApiBaseUrl = () => {
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
-    // Android emulator por padrão - ALTERE AQUI SE PRECISAR
-    return 'http://10.0.2.2:8080/api';
+    if (Platform.OS === 'android') {
+      // Checa se é emulador ou dispositivo físico
+      // No emulador, 10.0.2.2 funciona; no físico, precisa do IP local
+      return 'http://10.0.2.2:8080/api';
+    }
+    // iOS simulator usa localhost, dispositivo físico usa IP local
+    return `http://${LOCAL_IP}:8080/api`;
   }
   return 'https://pedix-api-production.com/api';
 };
