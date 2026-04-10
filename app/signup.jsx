@@ -17,19 +17,21 @@ export default function SignupScreen() {
   const { theme } = useTheme();
 
   const [nome, setNome]         = useState('');
-  const [cpf, setCpf]           = useState('');
+  const [email, setEmail]       = useState('');
+  const [senha, setSenha]       = useState('');
   const [telefone, setTelefone] = useState('');
   const [loading, setLoading]   = useState(false);
 
   const handleSignup = async () => {
     if (!nome.trim())     { Alert.alert('Campo obrigatório', 'Informe seu nome.'); return; }
-    if (!cpf.trim())      { Alert.alert('Campo obrigatório', 'Informe seu CPF.'); return; }
+    if (!email.trim())    { Alert.alert('Campo obrigatório', 'Informe seu e-mail.'); return; }
+    if (!senha.trim())    { Alert.alert('Campo obrigatório', 'Informe uma senha.'); return; }
     if (!telefone.trim()) { Alert.alert('Campo obrigatório', 'Informe seu telefone.'); return; }
 
     setLoading(true);
     try {
-      await register(nome.trim(), cpf.trim(), telefone.trim());
-      router.replace('/');
+      await register(nome.trim(), email.trim(), senha.trim(), telefone.trim());
+      router.replace('/scan');
     } catch (error) {
       Alert.alert('Erro no cadastro', error.message || 'Não foi possível criar sua conta.');
     } finally {
@@ -72,15 +74,30 @@ export default function SignupScreen() {
           </View>
 
           <View style={s.fieldGap}>
-            <Text style={[s.label, { color: theme.textSecondary }]}>CPF</Text>
+            <Text style={[s.label, { color: theme.textSecondary }]}>E-mail</Text>
             <View style={[s.inputRow, { backgroundColor: theme.inputBackground, borderColor: colors.border }]}>
-              <Ionicons name="id-card-outline" size={16} color={colors.textSub} style={s.inputIcon} />
+              <Ionicons name="mail-outline" size={16} color={colors.textSub} style={s.inputIcon} />
               <TextInput
                 style={[s.input, { color: theme.text }]}
-                placeholder="123.456.789-00"
+                placeholder="email@exemplo.com"
                 placeholderTextColor={colors.textMuted}
-                value={cpf} onChangeText={setCpf}
-                keyboardType="number-pad"
+                value={email} onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none" autoCorrect={false}
+              />
+            </View>
+          </View>
+
+          <View style={s.fieldGap}>
+            <Text style={[s.label, { color: theme.textSecondary }]}>Senha</Text>
+            <View style={[s.inputRow, { backgroundColor: theme.inputBackground, borderColor: colors.border }]}>
+              <Ionicons name="lock-closed-outline" size={16} color={colors.textSub} style={s.inputIcon} />
+              <TextInput
+                style={[s.input, { color: theme.text }]}
+                placeholder="Crie uma senha"
+                placeholderTextColor={colors.textMuted}
+                value={senha} onChangeText={setSenha}
+                secureTextEntry
                 autoCorrect={false} autoCapitalize="none"
               />
             </View>

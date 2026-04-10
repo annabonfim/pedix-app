@@ -1,17 +1,19 @@
 // services/authService.js
-// Autenticação usando a API C# real (sem endpoint /auth/login na API)
+// Autenticação MOCKADA (API C# não disponível durante Sprint 3).
 //
-// ESTRATÉGIA: A API C# tem Garçons e Clientes no banco Oracle.
-// Usamos esses endpoints reais para validar credenciais:
-//   ADMIN  (Garçom)  → GET /api/garcons       → valida por Nome + Matrícula
-//   CLIENTE          → GET /api/clientes       → valida por Nome + CPF
+// ESTRATÉGIA: Usa dados mockados em services/mockData.js para validar
+// credenciais. Mantém a mesma interface do serviço real — quando a API C#
+// estiver disponível, basta trocar os imports de volta.
 //
-// Isso é autenticação REAL (valida contra o banco Oracle), sem hardcode.
-// O "token" é um UUID derivado do ID do usuário, salvo em AsyncStorage.
+//   ADMIN  (Garçom)  → lista mockada MOCK_GARCONS  → Nome + Matrícula
+//   CLIENTE          → lista mockada MOCK_CLIENTES → Nome + CPF
+//
+// O "token" é gerado localmente (btoa do id + role + timestamp) e salvo
+// em AsyncStorage junto com o objeto do usuário.
 
-import { csharpApi } from './csharpAPi';
 import { saveToken, removeToken, getToken, saveUser, getSavedUser } from '../utils/storage';
 import { logger } from '../utils/logger';
+import { MOCK_CLIENTES, MOCK_GARCONS, mockDelay } from './mockData';
 
 // Roles
 export const ROLES = {
@@ -20,44 +22,30 @@ export const ROLES = {
 };
 
 // Gera um token local a partir do ID e role do usuário
-// (evita que qualquer pessoa "invente" uma sessão sem chamar a API)
 function generateLocalToken(userId, role) {
   const timestamp = Date.now();
   return btoa(`${userId}:${role}:${timestamp}`);
 }
 
-// ─── Login como Cliente
-// Valida Nome + CPF contra GET /api/clientes
-export async function loginAsCliente(nome, cpf) {
+// ─── LOGIN COMO CLIENTE ──────────────────────────────────────────────────────
+// Valida email + senha contra a lista mockada
+export async function loginAsCliente(email, senha) {
   try {
-    const cleanCpf = cpf.replace(/\D/g, ''); // remove pontuação
+    await mockDelay();
+    const emailLower = email.toLowerCase().trim();
 
-    // Busca clientes pelo nome (endpoint de search com paginação)
-    const response = await csharpApi.get(
-      `/clientes/search?nome=${encodeURIComponent(nome.trim())}&page=1&pageSize=20`,
-      { requiresAuth: false }
-    );
-
-    // O endpoint retorna lista paginada — adapte se o shape for diferente
-    const clientes = response?.data || response?.items || response || [];
-    const lista = Array.isArray(clientes) ? clientes : [clientes];
-
-    // Encontra o cliente que bate nome + CPF
-    const cliente = lista.find((c) => {
-      const cpfApi = (c.cpf || '').replace(/\D/g, '');
-      const nomeApi = (c.nome || '').toLowerCase().trim();
-      return cpfApi === cleanCpf && nomeApi.includes(nome.toLowerCase().trim());
+    const cliente = MOCK_CLIENTES.find((c) => {
+      return c.email.toLowerCase() === emailLower && c.senha === senha;
     });
 
     if (!cliente) {
-      throw new Error('Nome ou CPF incorretos. Verifique seus dados.');
+      throw new Error('E-mail ou senha incorretos. Verifique seus dados.');
     }
 
-    // Monta o objeto de usuário
     const user = {
       id: cliente.id,
       nome: cliente.nome,
-      cpf: cliente.cpf,
+      email: cliente.email,
       telefone: cliente.telefone,
       role: ROLES.CLIENTE,
     };
@@ -74,33 +62,28 @@ export async function loginAsCliente(nome, cpf) {
 }
 
 // ─── LOGIN COMO ADMIN (Garçom) ───────────────────────────────────────────────
-// Valida Nome + Matrícula contra GET /api/garcons
-export async function loginAsAdmin(nome, matricula) {
+// Valida email + senha contra a lista mockada
+export async function loginAsAdmin(email, senha) {
   try {
-    // Busca todos os garçons ativos
-    const response = await csharpApi.get('/garcons', { requiresAuth: false });
+    await mockDelay();
+    const emailLower = email.toLowerCase().trim();
 
-    const garcons = response?.data || response?.items || response || [];
-    const lista = Array.isArray(garcons) ? garcons : [garcons];
-
-    const garcom = lista.find((g) => {
-      const matriculaApi = String(g.matricula || '').trim();
-      const nomeApi = (g.nome || '').toLowerCase().trim();
+    const garcom = MOCK_GARCONS.find((g) => {
       return (
-        matriculaApi === matricula.trim() &&
-        nomeApi.includes(nome.toLowerCase().trim()) &&
-        g.ativo !== false // garçom inativo não pode logar
+        g.email.toLowerCase() === emailLower &&
+        g.senha === senha &&
+        g.ativo !== false
       );
     });
 
     if (!garcom) {
-      throw new Error('Nome ou matrícula incorretos, ou garçom inativo.');
+      throw new Error('E-mail ou senha incorretos, ou garçom inativo.');
     }
 
     const user = {
       id: garcom.id,
       nome: garcom.nome,
-      matricula: garcom.matricula,
+      email: garcom.email,
       telefone: garcom.telefone,
       role: ROLES.ADMIN,
     };
@@ -117,19 +100,38 @@ export async function loginAsAdmin(nome, matricula) {
 }
 
 // ─── CADASTRO DE CLIENTE ─────────────────────────────────────────────────────
-// Cria um novo cliente via POST /api/clientes e já faz login
-export async function registerCliente(nome, cpf, telefone) {
+// Cria um novo cliente em memória e já faz login
+// (não persiste entre reloads do app — só durante a sessão)
+export async function registerCliente(nome, email, senha, telefone) {
   try {
-    const created = await csharpApi.post('/clientes', { nome, cpf, telefone }, { requiresAuth: false });
+    await mockDelay();
+    const emailLower = email.toLowerCase().trim();
 
-    const user = {
-      id: created.id,
-      nome: created.nome,
-      cpf: created.cpf,
-      telefone: created.telefone,
-      role: ROLES.CLIENTE,
+    // Verifica se email já existe
+    const existente = MOCK_CLIENTES.find(
+      (c) => c.email.toLowerCase() === emailLower
+    );
+    if (existente) {
+      throw new Error('Já existe um cliente cadastrado com esse e-mail.');
+    }
+
+    const novo = {
+      id: `mock-cli-${Date.now()}`,
+      nome: nome.trim(),
+      email: emailLower,
+      senha: senha,
+      telefone: telefone.trim(),
     };
 
+    MOCK_CLIENTES.push(novo);
+
+    const user = {
+      id: novo.id,
+      nome: novo.nome,
+      email: novo.email,
+      telefone: novo.telefone,
+      role: ROLES.CLIENTE,
+    };
     const token = generateLocalToken(user.id, ROLES.CLIENTE);
     await saveToken(token);
     await saveUser(user);
@@ -147,7 +149,6 @@ export async function getCurrentUser() {
     const token = await getToken();
     if (!token) return null;
 
-    // Valida que o token não foi adulterado (decode básico)
     try {
       const decoded = atob(token);
       const parts = decoded.split(':');
@@ -157,7 +158,6 @@ export async function getCurrentUser() {
       return null;
     }
 
-    // Retorna usuário salvo em cache (não precisa chamar API novamente)
     return await getSavedUser();
   } catch (error) {
     logger.warn('Erro ao obter usuário atual:', error);
@@ -182,25 +182,9 @@ export async function hasValidToken() {
   }
 }
 
-// ─── OPERAÇÕES DA API C# (reutilizáveis) ─────────────────────────────────────
+// ─── OPERAÇÕES MOCKADAS ──────────────────────────────────────────────────────
 
-// Lista todas as mesas (útil para o app)
-export async function fetchMesas() {
-  return csharpApi.get('/mesas');
-}
-
-// Lista garçons ativos
 export async function fetchGarcons() {
-  return csharpApi.get('/garcons');
-}
-
-// Busca comanda de uma mesa
-export async function fetchComandaByMesa(mesaId) {
-  return csharpApi.get(`/comandas?mesaId=${mesaId}`);
-}
-
-// Abre uma comanda
-export async function abrirComanda(payload) {
-  // payload: { mesaId, garcomId, clienteId }
-  return csharpApi.post('/comandas', payload);
+  await mockDelay();
+  return MOCK_GARCONS;
 }

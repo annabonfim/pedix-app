@@ -10,7 +10,9 @@ import {
   getCurrentUser,
   ROLES,
 } from '../services/authService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getToken, saveUser, getSavedUser } from '../utils/storage';
+import { APP_CONFIG } from '../config/constants';
 import { logger } from '../utils/logger';
 
 // ─── ROLES ───────────────────────────────────────────────────────────────────
@@ -60,15 +62,14 @@ export function AuthProvider({ children }) {
   };
 
   // role: 'CLIENTE' | 'ADMIN'
-  // CLIENTE  → valida nome + CPF via GET /api/clientes
-  // ADMIN    → valida nome + matrícula via GET /api/garcons
-  
-  const login = useCallback(async (nome, credential, role) => {
+  // Ambos usam email + senha
+
+  const login = useCallback(async (email, senha, role) => {
     let result;
     if (role === 'ADMIN') {
-      result = await loginAsAdmin(nome, credential);
+      result = await loginAsAdmin(email, senha);
     } else {
-      result = await loginAsCliente(nome, credential);
+      result = await loginAsCliente(email, senha);
     }
     setUser(result.user);
     setToken(result.token);
@@ -77,12 +78,15 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     await apiLogout();
+    // Limpa mesa selecionada para não mostrar pedidos de sessões anteriores
+    await AsyncStorage.removeItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER);
+    await AsyncStorage.removeItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID);
     setUser(null);
     setToken(null);
   }, []);
 
-  const register = useCallback(async (nome, cpf, telefone) => {
-    const result = await registerCliente(nome, cpf, telefone);
+  const register = useCallback(async (nome, email, senha, telefone) => {
+    const result = await registerCliente(nome, email, senha, telefone);
     setUser(result.user);
     setToken(result.token);
     return result.user;

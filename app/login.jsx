@@ -18,24 +18,22 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  const [role, setRole]             = useState('CLIENTE');
-  const [nome, setNome]             = useState('');
-  const [credential, setCredential] = useState('');
-  const [loading, setLoading]       = useState(false);
+  const [role, setRole]       = useState('CLIENTE');
+  const [email, setEmail]     = useState('');
+  const [senha, setSenha]     = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const isAdmin               = role === 'ADMIN';
-  const credentialLabel       = isAdmin ? 'Matrícula' : 'CPF';
-  const credentialPlaceholder = isAdmin ? 'Ex: G001' : '123.456.789-00';
+  const isAdmin = role === 'ADMIN';
 
   const handleLogin = async () => {
-    if (!nome.trim())       { Alert.alert('Campo obrigatório', 'Informe seu nome.'); return; }
-    if (!credential.trim()) { Alert.alert('Campo obrigatório', `Informe sua ${credentialLabel}.`); return; }
+    if (!email.trim()) { Alert.alert('Campo obrigatório', 'Informe seu e-mail.'); return; }
+    if (!senha.trim()) { Alert.alert('Campo obrigatório', 'Informe sua senha.'); return; }
     setLoading(true);
     try {
-      await login(nome.trim(), credential.trim(), role);
+      await login(email.trim(), senha.trim(), role);
       router.replace('/');
     } catch (error) {
-      Alert.alert('Acesso negado', error.message || `${credentialLabel} ou nome não encontrados.`);
+      Alert.alert('Acesso negado', error.message || 'E-mail ou senha incorretos.');
     } finally {
       setLoading(false);
     }
@@ -68,7 +66,7 @@ export default function LoginScreen() {
           <View style={[s.roleRow, { backgroundColor: theme.background }]}>
             <TouchableOpacity
               style={[s.roleBtn, !isAdmin && s.roleBtnActive]}
-              onPress={() => { setRole('CLIENTE'); setCredential(''); }}
+              onPress={() => { setRole('CLIENTE'); setEmail(''); setSenha(''); }}
             >
               <Ionicons
                 name="person-circle-outline" size={18}
@@ -78,7 +76,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[s.roleBtn, isAdmin && s.roleBtnActive]}
-              onPress={() => { setRole('ADMIN'); setCredential(''); }}
+              onPress={() => { setRole('ADMIN'); setEmail(''); setSenha(''); }}
             >
               <Ionicons
                 name="shield-checkmark-outline" size={18}
@@ -92,41 +90,39 @@ export default function LoginScreen() {
           <View style={[s.infoBox, { backgroundColor: theme.background }]}>
             <Ionicons name="information-circle-outline" size={14} color={colors.textSub} />
             <Text style={[s.infoText, { color: theme.textSecondary }]}>
-              {isAdmin
-                ? 'Use seu nome e matrícula cadastrados no sistema.'
-                : 'Use seu nome e CPF cadastrados no sistema.'}
+              Use seu e-mail e senha cadastrados no sistema.
             </Text>
           </View>
 
           {/* Campos */}
           <View style={s.fieldGap}>
-            <Text style={[s.label, { color: theme.textSecondary }]}>Nome completo</Text>
+            <Text style={[s.label, { color: theme.textSecondary }]}>E-mail</Text>
             <View style={[s.inputRow, { backgroundColor: theme.inputBackground, borderColor: colors.border }]}>
-              <Ionicons name="person-outline" size={16} color={colors.textSub} style={s.inputIcon} />
+              <Ionicons name="mail-outline" size={16} color={colors.textSub} style={s.inputIcon} />
               <TextInput
                 style={[s.input, { color: theme.text }]}
-                placeholder="Ex: Maria Silva"
+                placeholder="email@exemplo.com"
                 placeholderTextColor={colors.textMuted}
-                value={nome} onChangeText={setNome}
-                autoCapitalize="words" autoCorrect={false}
+                value={email} onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none" autoCorrect={false}
+                autoComplete="off" importantForAutofill="no"
               />
             </View>
           </View>
 
           <View style={[s.fieldGap, { marginBottom: 20 }]}>
-            <Text style={[s.label, { color: theme.textSecondary }]}>{credentialLabel}</Text>
+            <Text style={[s.label, { color: theme.textSecondary }]}>Senha</Text>
             <View style={[s.inputRow, { backgroundColor: theme.inputBackground, borderColor: colors.border }]}>
-              <Ionicons
-                name={isAdmin ? 'card-outline' : 'id-card-outline'}
-                size={16} color={colors.textSub} style={s.inputIcon}
-              />
+              <Ionicons name="lock-closed-outline" size={16} color={colors.textSub} style={s.inputIcon} />
               <TextInput
                 style={[s.input, { color: theme.text }]}
-                placeholder={credentialPlaceholder}
+                placeholder="Digite sua senha"
                 placeholderTextColor={colors.textMuted}
-                value={credential} onChangeText={setCredential}
-                keyboardType={isAdmin ? 'default' : 'number-pad'}
+                value={senha} onChangeText={setSenha}
+                secureTextEntry
                 autoCorrect={false} autoCapitalize="none"
+                autoComplete="off" importantForAutofill="no"
               />
             </View>
           </View>
