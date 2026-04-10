@@ -110,8 +110,9 @@ function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Início',
+            title: 'Home',
             tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
+            href: isAdmin ? '/' : null, // só garçom vê Home na tab
           }}
         />
         <Tabs.Screen
@@ -119,6 +120,8 @@ function TabLayout() {
           options={{
             title: 'Mesa',
             tabBarIcon: ({ color, size }) => <Icon name="qr" size={size} color={color} />,
+            href: isAdmin ? null : undefined, // cliente vê, garçom não
+            tabBarStyle: !isAuthenticated || !hasRestaurante ? { display: 'none' } : undefined, // esconde tabs antes de selecionar mesa
           }}
         />
         <Tabs.Screen
@@ -126,7 +129,7 @@ function TabLayout() {
           options={{
             title: 'Cardápio',
             tabBarIcon: ({ color, size }) => <Icon name="menu" size={size} color={color} />,
-            href: hasRestaurante ? '/menu' : null,
+            href: (isAdmin || hasRestaurante) ? '/menu' : null,
           }}
         />
         <Tabs.Screen
@@ -134,7 +137,7 @@ function TabLayout() {
           options={{
             title: 'Carrinho',
             tabBarIcon: ({ color, size }) => <Icon name="cart" size={size} color={color} />,
-            href: hasRestaurante ? '/cart' : null,
+            href: isAdmin ? null : (hasRestaurante ? '/cart' : null), // esconde pra garçom
           }}
         />
         <Tabs.Screen
@@ -142,7 +145,7 @@ function TabLayout() {
           options={{
             title: 'Pedidos',
             tabBarIcon: ({ color, size }) => <Icon name="orders" size={size} color={color} />,
-            href: hasRestaurante ? '/orders' : null,
+            href: isAdmin ? null : (hasRestaurante ? '/orders' : null),
           }}
         />
         {/* Tab exclusiva do garçom/admin */}
@@ -160,8 +163,8 @@ function TabLayout() {
         {/* Telas sem tab bar */}
         <Tabs.Screen name="item" options={{ href: null }} />
         <Tabs.Screen name="edit-order" options={{ href: null }} />
-        <Tabs.Screen name="login" options={{ href: null }} />
-        <Tabs.Screen name="signup" options={{ href: null }} />
+        <Tabs.Screen name="login" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="signup" options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="admin/mesa-pedidos" options={{ href: null }} />
       </Tabs>
     </CartProvider>

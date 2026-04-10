@@ -5,20 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { usePedidosByComanda } from '../hooks/usePedidos';
-import { colors, shared, shadows, radius, badge, typography } from '../styles/theme';
+import { useMesas } from '../hooks/useMesas';
+import { colors, shared, typography } from '../styles/theme';
 import { APP_CONFIG } from '../config/constants';
-import { translateStatus } from '../utils/time';
 
 const MASCOT = require('../assets/pedix-mascot.png');
-
-const STATUS_BADGE = {
-  PENDENTE:   badge.amber,
-  PREPARANDO: badge.blue,
-  PRONTO:     badge.green,
-  ENTREGUE:   badge.gray,
-  CANCELADO:  badge.red,
-};
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -26,20 +17,37 @@ export default function IndexScreen() {
   const { theme, toggleTheme } = useTheme();
   const [tableNumber, setTableNumber] = useState(null);
 
+  const { isAdmin } = useAuth();
+
   useEffect(() => {
     AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER)
-      .then(v => { if (v) setTableNumber(parseInt(v, 10)); });
+      .then(v => {
+        if (v) {
+          setTableNumber(parseInt(v, 10));
+        } else if (!isAdmin) {
+          // Cliente sem mesa → redireciona pro scan
+          router.replace('/scan');
+        }
+      });
   }, []);
-
-  const { data: pedidos = [] } = usePedidosByComanda(tableNumber);
-  const ultimoPedido = pedidos[0] || null;
   const firstName = (user?.nome || 'você').split(' ')[0];
 
-  const quickItems = [
-    { icon: 'restaurant-outline', label: 'Cardápio', route: '/menu' },
-    { icon: 'receipt-outline',    label: 'Pedidos',  route: '/orders' },
-    { icon: 'qr-code-outline',    label: 'Mesa',     route: '/scan' },
-  ];
+  // Garçom: busca mesas pra mostrar resumo na home
+  const { data: mesas = [] } = useMesas();
+  const mesasLivres = mesas.filter(m => (m.status || '').toUpperCase() === 'LIVRE').length;
+  const mesasOcupadas = mesas.filter(m => (m.status || '').toUpperCase() === 'OCUPADA').length;
+
+  const quickItems = isAdmin
+    ? [
+        { icon: 'grid-outline',      label: 'Mesas',    route: '/admin/mesas' },
+        { icon: 'restaurant-outline', label: 'Cardápio', route: '/menu' },
+        { icon: 'receipt-outline',    label: 'Pedidos',  route: '/orders' },
+      ]
+    : [
+        { icon: 'restaurant-outline', label: 'Cardápio', route: '/menu' },
+        { icon: 'receipt-outline',    label: 'Pedidos',  route: '/orders' },
+        { icon: 'qr-code-outline',    label: 'Mesa',     route: '/scan' },
+      ];
 
   return (
     <View style={[shared.screen, { backgroundColor: theme.background }]}>
@@ -85,55 +93,49 @@ export default function IndexScreen() {
 
       <ScrollView contentContainerStyle={s.content}>
 
-        {/* Último pedido */}
-        {ultimoPedido ? (
+        {/* ─── GARÇOM: resumo de mesas ─── */}
+        {isAdmin && (
           <>
             <Text style={[typography.sectionTitle, { color: theme.textSecondary, marginBottom: 8 }]}>
-              Último pedido
+              Resumo das mesas
             </Text>
-            <TouchableOpacity
-              style={[shared.card, { backgroundColor: theme.surface, borderColor: colors.border }]}
-              onPress={() => router.push('/orders')}
-              activeOpacity={0.8}
-            >
-              <View style={s.pedidoHeader}>
-                <View>
-                  <Text style={[s.pedidoId, { color: theme.text }]}>Pedido #{ultimoPedido.id}</Text>
-                  <Text style={[s.pedidoDate, { color: theme.textSecondary }]}>
-                    {ultimoPedido.dataCriacao?.slice(0, 16).replace('T', ' · ') || '—'}
-                  </Text>
-                </View>
-                <View style={[badge.base, STATUS_BADGE[(ultimoPedido.status || '').toUpperCase()] || badge.gray]}>
-                  <Text style={[badge.text, { color: (STATUS_BADGE[(ultimoPedido.status || '').toUpperCase()] || badge.gray).color }]}>
-                    {translateStatus(ultimoPedido.status)}
-                  </Text>
-                </View>
-              </View>
-              <View style={[s.itensBox, { backgroundColor: theme.background }]}>
-                <Text style={[s.itensText, { color: theme.text }]}>
-                  {(ultimoPedido.itens || [])
-                    .slice(0, 3)
-                    .map(i => `${i.quantidade || 1}x ${i.itemCardapio?.nome || `Item ${i.itemCardapioId}`}`)
-                    .join(' · ')}
-                </Text>
-              </View>
-              <View style={s.pedidoFooter}>
-                <Text style={[typography.total, { color: colors.orange }]}>
-                  Ver detalhes →
-                </Text>
-              </View>
-            </TouchableOpacity>
+            <View style={s.mesasSummaryRow}>
+              <TouchableOpacity
+                style={[shared.card, s.mesasSummaryCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
+                onPress={() => router.push('/admin/mesas')}
+              >
+                <Text style={[s.mesasSummaryNumber, { color: '#28A745' }]}>{mesasLivres}</Text>
+                <Text style={[s.mesasSummaryLabel, { color: theme.textSecondary }]}>Livres</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[shared.card, s.mesasSummaryCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
+                onPress={() => router.push('/admin/mesas')}
+              >
+                <Text style={[s.mesasSummaryNumber, { color: colors.orange }]}>{mesasOcupadas}</Text>
+                <Text style={[s.mesasSummaryLabel, { color: theme.textSecondary }]}>Ocupadas</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[shared.card, s.mesasSummaryCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
+                onPress={() => router.push('/admin/mesas')}
+              >
+                <Text style={[s.mesasSummaryNumber, { color: theme.text }]}>{mesas.length}</Text>
+                <Text style={[s.mesasSummaryLabel, { color: theme.textSecondary }]}>Total</Text>
+              </TouchableOpacity>
+            </View>
           </>
-        ) : (
+        )}
+
+        {/* ─── CLIENTE: selecionar mesa ─── */}
+        {!isAdmin && !tableNumber && (
           <>
             <Text style={[typography.sectionTitle, { color: theme.textSecondary, marginBottom: 8 }]}>
               Comece agora
             </Text>
             <View style={[shared.card, s.emptyCard, { backgroundColor: theme.surface, borderColor: colors.border }]}>
               <Image source={MASCOT} style={s.mascotEmpty} resizeMode="contain" />
-              <Text style={[s.emptyTitle, { color: theme.text }]}>Nenhum pedido ainda</Text>
+              <Text style={[s.emptyTitle, { color: theme.text }]}>Selecione sua mesa</Text>
               <Text style={[s.emptySub, { color: theme.textSecondary }]}>
-                Escaneie o QR Code da sua mesa e explore o cardápio!
+                Escaneie o QR Code da sua mesa ou informe o número manualmente
               </Text>
               <TouchableOpacity
                 style={[shared.btnPrimary, s.emptyBtn]}
@@ -145,29 +147,33 @@ export default function IndexScreen() {
           </>
         )}
 
-        {/* Sugestão do dia */}
-        <Text style={[typography.sectionTitle, { color: theme.textSecondary, marginTop: 8, marginBottom: 8 }]}>
-          Sugestão do dia
-        </Text>
-        <TouchableOpacity
-          style={[shared.card, s.suggestCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
-          onPress={() => router.push('/menu')}
-          activeOpacity={0.8}
-        >
-          <View style={s.suggestEmoji}>
-            <Text style={{ fontSize: 28 }}>🍝</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[s.suggestName, { color: theme.text }]}>Spaghetti Carbonara</Text>
-            <Text style={[s.suggestDesc, { color: theme.textSecondary }]}>
-              Massa italiana com molho cremoso, bacon e parmesão
+        {/* Sugestão do dia — só aparece após selecionar mesa */}
+        {(isAdmin || tableNumber) && (
+          <>
+            <Text style={[typography.sectionTitle, { color: theme.textSecondary, marginTop: 8, marginBottom: 8 }]}>
+              Sugestão do dia
             </Text>
-            <Text style={[typography.price, { marginTop: 6 }]}>R$ 52,00</Text>
-          </View>
-          <TouchableOpacity style={s.addBtn} onPress={() => router.push('/menu')}>
-            <Ionicons name="add" size={18} color="#FFFFFF" />
-          </TouchableOpacity>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[shared.card, s.suggestCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
+              onPress={() => router.push('/menu')}
+              activeOpacity={0.8}
+            >
+              <View style={s.suggestEmoji}>
+                <Text style={{ fontSize: 28 }}>🍝</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.suggestName, { color: theme.text }]}>Spaghetti Carbonara</Text>
+                <Text style={[s.suggestDesc, { color: theme.textSecondary }]}>
+                  Massa italiana com molho cremoso, bacon e parmesão
+                </Text>
+                <Text style={[typography.price, { marginTop: 6 }]}>R$ 52,00</Text>
+              </View>
+              <TouchableOpacity style={s.addBtn} onPress={() => router.push('/menu')}>
+                <Ionicons name="add" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </>
+        )}
 
       </ScrollView>
     </View>
@@ -210,6 +216,12 @@ const s = StyleSheet.create({
   itensBox: { borderRadius: 8, padding: 10, marginBottom: 8 },
   itensText: { fontSize: 13, lineHeight: 20 },
   pedidoFooter: { alignItems: 'flex-end' },
+
+  // Mesas summary (garçom)
+  mesasSummaryRow: { flexDirection: 'row', gap: 10 },
+  mesasSummaryCard: { flex: 1, alignItems: 'center', padding: 16, gap: 4 },
+  mesasSummaryNumber: { fontSize: 28, fontWeight: '800' },
+  mesasSummaryLabel: { fontSize: 12 },
 
   // Empty state
   emptyCard: { alignItems: 'center', padding: 28, gap: 8 },
