@@ -1,124 +1,159 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Button } from '../components/Button';
-import { Card } from '../components/Card';
+import { Ionicons } from '@expo/vector-icons';
 import { ItemImage } from '../components/ItemImage';
 import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
+import { colors } from '../styles/theme';
 
 export default function ItemDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { addToCart } = useCart();
+  const { addItem } = useCart();
+  const { theme } = useTheme();
   const [observacao, setObservacao] = useState('');
+  const [quantidade, setQuantidade] = useState(1);
+
+  const price = parseFloat(params.price || 0);
+  const total = price * quantidade;
 
   const handleAddToCart = () => {
     const item = {
       id: params.id,
       name: params.name,
-      price: parseFloat(params.price),
+      price: price,
       image: params.image,
       description: params.description,
       observacao: observacao.trim() || null,
+      quantity: quantidade,
     };
-    
-    addToCart(item);
+
+    for (let i = 0; i < quantidade; i++) {
+      addItem(item);
+    }
     router.push('/cart');
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.imageContainer}>
-        <ItemImage source={params.image} emoji={params.image} size={100} />
+    <View style={[s.container, { backgroundColor: theme.background }]}>
+      {/* Header com imagem */}
+      <View style={[s.imageSection, { backgroundColor: theme.surface }]}>
+        <TouchableOpacity style={s.backBtn} onPress={() => router.push('/menu')}>
+          <Ionicons name="arrow-back" size={22} color={theme.text} />
+        </TouchableOpacity>
+        {params.image && params.image.startsWith('http') ? (
+          <Image source={{ uri: params.image }} style={s.itemImage} resizeMode="cover" />
+        ) : (
+          <ItemImage image={params.image} size={100} />
+        )}
       </View>
 
-      <View style={styles.cardContainer}>
-        <Card>
-          <Text style={styles.name}>{params.name}</Text>
-          <Text style={styles.price}>R$ {parseFloat(params.price).toFixed(2)}</Text>
-          <Text style={styles.description}>{params.description}</Text>
-        </Card>
+      <ScrollView contentContainerStyle={s.content}>
+        {/* Info */}
+        <Text style={[s.name, { color: theme.text }]}>{params.name}</Text>
+        {params.description ? (
+          <Text style={[s.description, { color: theme.textSecondary }]}>{params.description}</Text>
+        ) : null}
+        <Text style={s.price}>R$ {price.toFixed(2)}</Text>
 
-        <Card style={{ marginTop: 16 }}>
-          <Text style={styles.observacaoLabel}>Observação (opcional)</Text>
+        {/* Quantidade */}
+        <View style={[s.quantityCard, { backgroundColor: theme.surface, borderColor: colors.border }]}>
+          <Text style={[s.quantityLabel, { color: theme.text }]}>Quantidade</Text>
+          <View style={s.quantityRow}>
+            <TouchableOpacity
+              style={[s.quantityBtn, { backgroundColor: colors.orange }]}
+              onPress={() => setQuantidade(Math.max(1, quantidade - 1))}
+            >
+              <Ionicons name="remove" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={[s.quantityText, { color: theme.text }]}>{quantidade}</Text>
+            <TouchableOpacity
+              style={[s.quantityBtn, { backgroundColor: colors.orange }]}
+              onPress={() => setQuantidade(quantidade + 1)}
+            >
+              <Ionicons name="add" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Observação */}
+        <View style={[s.obsCard, { backgroundColor: theme.surface, borderColor: colors.border }]}>
+          <Text style={[s.obsLabel, { color: theme.text }]}>Observação (opcional)</Text>
           <TextInput
-            style={styles.observacaoInput}
+            style={[s.obsInput, { backgroundColor: theme.background, color: theme.text, borderColor: colors.border }]}
             placeholder="Ex: sem cebola, bem passado, etc."
+            placeholderTextColor={colors.textMuted}
             value={observacao}
             onChangeText={setObservacao}
             multiline
             numberOfLines={3}
-            placeholderTextColor="#95A5A6"
           />
-        </Card>
-      </View>
+        </View>
+      </ScrollView>
 
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Adicionar à Comanda"
-          onPress={handleAddToCart}
-        />
-        <Button
-          title="Voltar"
-          variant="secondary"
-          onPress={() => router.push('/menu')}
-        />
+      {/* Footer fixo */}
+      <View style={[s.footer, { backgroundColor: theme.surface, borderTopColor: colors.border }]}>
+        <View>
+          <Text style={[s.totalLabel, { color: theme.textSecondary }]}>Total</Text>
+          <Text style={s.totalPrice}>R$ {total.toFixed(2)}</Text>
+        </View>
+        <TouchableOpacity style={s.addBtn} onPress={handleAddToCart}>
+          <Ionicons name="cart-outline" size={18} color="#FFFFFF" />
+          <Text style={s.addBtnText}>  Adicionar</Text>
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
+const s = StyleSheet.create({
+  container: { flex: 1 },
+  imageSection: {
+    alignItems: 'center', justifyContent: 'center',
+    paddingTop: 60, paddingBottom: 24,
   },
-  imageContainer: {
-    alignItems: 'center',
-    padding: 40,
-    paddingTop: 80,
-    backgroundColor: '#FFFFFF',
+  backBtn: {
+    position: 'absolute', top: 50, left: 16, padding: 8,
+    zIndex: 1,
   },
-  cardContainer: {
-    paddingHorizontal: 16,
+  itemImage: {
+    width: 180, height: 180, borderRadius: 16,
   },
-  name: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#2C3E50',
-    marginBottom: 8,
-  },
-  price: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FF6B35',
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 16,
-    color: '#7F8C8D',
-    lineHeight: 24,
-  },
-  observacaoLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2C3E50',
-    marginBottom: 8,
-  },
-  observacaoInput: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    color: '#2C3E50',
-    minHeight: 80,
-    textAlignVertical: 'top',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  buttonContainer: {
-    padding: 16,
-    gap: 12,
-  },
-});
+  content: { padding: 20, gap: 16 },
+  name: { fontSize: 22, fontWeight: '800' },
+  description: { fontSize: 14, lineHeight: 20 },
+  price: { fontSize: 24, fontWeight: '700', color: colors.orange },
 
+  quantityCard: {
+    borderRadius: 12, borderWidth: 1, padding: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  quantityLabel: { fontSize: 15, fontWeight: '600' },
+  quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  quantityBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  quantityText: { fontSize: 18, fontWeight: '700', minWidth: 24, textAlign: 'center' },
+
+  obsCard: { borderRadius: 12, borderWidth: 1, padding: 16 },
+  obsLabel: { fontSize: 15, fontWeight: '600', marginBottom: 10 },
+  obsInput: {
+    borderRadius: 10, padding: 12, fontSize: 14,
+    minHeight: 70, textAlignVertical: 'top', borderWidth: 1,
+  },
+
+  footer: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 16, borderTopWidth: 1,
+  },
+  totalLabel: { fontSize: 12 },
+  totalPrice: { fontSize: 20, fontWeight: '800', color: colors.orange },
+  addBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.orange, borderRadius: 12,
+    paddingHorizontal: 24, paddingVertical: 14,
+  },
+  addBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+});

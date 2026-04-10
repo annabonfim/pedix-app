@@ -62,10 +62,14 @@ export function CartProvider({ children }) {
     setCartItems([]);
   };
 
+  const cartCount = cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
   return (
     <CartContext.Provider value={{
       cartItems,
+      cartCount,
       addToCart,
+      addItem: addToCart,
       removeFromCart,
       updateItemQuantity,
       updateItemObservacao,

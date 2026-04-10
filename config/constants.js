@@ -26,7 +26,11 @@ export const RESTAURANTES = [
 // ID do restaurante válido (por enquanto só Italiano funciona)
 export const RESTAURANTE_VALIDO_ID = 1;
 
-// Ordem das categorias no cardápio
-export const CATEGORIES = ['Pratos', 'Bebidas', 'Sobremesas'];
+// Categorias do cardápio (value = enum da API Java, label = exibição no app)
+export const CATEGORIES = [
+  { value: 'PRATO', label: 'Pratos' },
+  { value: 'BEBIDA', label: 'Bebidas' },
+  { value: 'SOBREMESA', label: 'Sobremesas' },
+];
 
 

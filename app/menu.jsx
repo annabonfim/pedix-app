@@ -4,31 +4,41 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { useMenuItems } from '../hooks/useMenuItems';
 import { useCart } from '../context/CartContext';
 import { ItemImage } from '../components/ItemImage';
 import { colors, shared, radius, typography } from '../styles/theme';
 import { CATEGORIES } from '../config/constants';
 
-const ALL = 'Todos';
+const ALL = { value: null, label: 'Todos' };
 const CATS = [ALL, ...CATEGORIES];
 
 export default function MenuScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { logout } = useAuth();
   const { addItem, cartCount } = useCart();
 
   const [selectedCat, setSelectedCat] = useState(ALL);
   const [search, setSearch] = useState('');
 
   const { data: items = [], isLoading, refetch, isFetching } = useMenuItems(
-    selectedCat === ALL ? null : selectedCat
+    selectedCat.value
   );
 
-  const filtered = items.filter(item =>
-    item.available !== false &&
-    (search === '' || item.name.toLowerCase().includes(search.toLowerCase()))
-  );
+  const categoryOrder = { PRATO: 0, BEBIDA: 1, SOBREMESA: 2 };
+
+  const filtered = items
+    .filter(item =>
+      item.available !== false &&
+      (search === '' || item.name.toLowerCase().includes(search.toLowerCase()))
+    )
+    .sort((a, b) => {
+      const oa = categoryOrder[(a.category || '').toUpperCase()] ?? 99;
+      const ob = categoryOrder[(b.category || '').toUpperCase()] ?? 99;
+      return oa - ob;
+    });
 
   return (
     <View style={[shared.screen, { backgroundColor: theme.background }]}>
@@ -46,6 +56,9 @@ export default function MenuScreen() {
                 name={theme.mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
                 size={20} color="rgba(255,255,255,0.75)"
               />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={logout} style={{ padding: 4 }}>
+              <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.75)" />
             </TouchableOpacity>
             <TouchableOpacity style={s.cartBtn} onPress={() => router.push('/cart')}>
               <Ionicons name="cart-outline" size={22} color="#FFFFFF" />
@@ -80,11 +93,11 @@ export default function MenuScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catScroll}>
           {CATS.map(cat => (
             <TouchableOpacity
-              key={cat}
-              style={[s.chip, selectedCat === cat && s.chipActive]}
+              key={cat.label}
+              style={[s.chip, selectedCat.value === cat.value && s.chipActive]}
               onPress={() => setSelectedCat(cat)}
             >
-              <Text style={[s.chipText, selectedCat === cat && s.chipTextActive]}>{cat}</Text>
+              <Text style={[s.chipText, selectedCat.value === cat.value && s.chipTextActive]}>{cat.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -108,11 +121,11 @@ export default function MenuScreen() {
               <TouchableOpacity
                 key={item.id}
                 style={[s.itemCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
-                onPress={() => router.push({ pathname: '/item', params: { id: item.id } })}
+                onPress={() => router.push({ pathname: '/item', params: { id: item.id, name: item.name, price: String(item.price), description: item.description || '', image: item.image || '' } })}
                 activeOpacity={0.8}
               >
                 <View style={[s.itemEmoji, { backgroundColor: theme.background }]}>
-                  <ItemImage image={item.image} size={30} />
+                  <ItemImage source={item.image} size={30} />
                 </View>
                 <View style={s.itemInfo}>
                   <Text style={[s.itemName, { color: theme.text }]}>{item.name}</Text>
