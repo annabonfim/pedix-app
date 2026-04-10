@@ -10,18 +10,14 @@ import { useTheme } from '../../context/ThemeContext';
 import { useMesas } from '../../hooks/useMesas';
 
 // ─── STATUS DA MESA ──────────────────────────────────────────────────────────
-// Adapte os valores conforme o enum da sua API C#
-// ex: 'DISPONIVEL', 'OCUPADA', 'RESERVADA', 'INDISPONIVEL'
 const STATUS_CONFIG = {
-  DISPONIVEL: { label: 'Disponível', color: '#28A745', bg: '#D4EDDA', icon: 'checkmark-circle-outline' },
-  OCUPADA:    { label: 'Ocupada',    color: '#FF6B35', bg: '#FFE8DF', icon: 'people-outline'           },
-  RESERVADA:  { label: 'Reservada',  color: '#FFC107', bg: '#FFF3CD', icon: 'time-outline'             },
-  INDISPONIVEL: { label: 'Indisp.',  color: '#6C757D', bg: '#E2E3E5', icon: 'close-circle-outline'     },
+  LIVRE:   { label: 'Livre',   color: '#28A745', bg: '#D4EDDA', icon: 'checkmark-circle-outline' },
+  OCUPADA: { label: 'Ocupada', color: '#FF6B35', bg: '#FFE8DF', icon: 'people-outline'           },
 };
 
 function getStatusConfig(status) {
   const key = (status || '').toUpperCase();
-  return STATUS_CONFIG[key] || STATUS_CONFIG.DISPONIVEL;
+  return STATUS_CONFIG[key] || STATUS_CONFIG.LIVRE;
 }
 
 export default function AdminMesasScreen() {
@@ -29,7 +25,8 @@ export default function AdminMesasScreen() {
   const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
 
-  const { data: mesas = [], isLoading, isFetching, refetch } = useMesas();
+  const { data: mesasRaw = [], isLoading, isFetching, refetch } = useMesas();
+  const mesas = [...mesasRaw].sort((a, b) => (a.numero || 0) - (b.numero || 0));
 
   const s = makeStyles(theme);
 
@@ -73,16 +70,12 @@ export default function AdminMesasScreen() {
       {/* Resumo rápido */}
       <View style={s.summaryRow}>
         <View style={s.summaryCard}>
-          <Text style={[s.summaryNumber, { color: '#28A745' }]}>{counts.DISPONIVEL || 0}</Text>
-          <Text style={s.summaryLabel}>Disponíveis</Text>
+          <Text style={[s.summaryNumber, { color: '#28A745' }]}>{counts.LIVRE || 0}</Text>
+          <Text style={s.summaryLabel}>Livres</Text>
         </View>
         <View style={s.summaryCard}>
           <Text style={[s.summaryNumber, { color: theme.primary }]}>{counts.OCUPADA || 0}</Text>
           <Text style={s.summaryLabel}>Ocupadas</Text>
-        </View>
-        <View style={s.summaryCard}>
-          <Text style={[s.summaryNumber, { color: '#FFC107' }]}>{counts.RESERVADA || 0}</Text>
-          <Text style={s.summaryLabel}>Reservadas</Text>
         </View>
         <View style={s.summaryCard}>
           <Text style={[s.summaryNumber, { color: theme.text }]}>{mesas.length}</Text>

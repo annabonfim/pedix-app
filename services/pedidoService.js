@@ -80,14 +80,25 @@ export async function fetchPedidoById(pedidoId) {
 
 // Atualiza o status de um pedido
 // pedidoId: ID do pedido
-// status: 'PENDENTE', 'PREPARANDO', 'PRONTO', 'ENTREGUE', 'CANCELADO'
+// status: 'EM_PREPARO', 'PRONTO', 'ENTREGUE', 'CANCELADO'
+// Precisa buscar o pedido primeiro pra mandar os itens junto (API exige)
 export async function atualizarStatusPedido(pedidoId, status) {
   try {
-    const response = await api.put(`/pedido/${pedidoId}/status?status=${status}`);
-    
-    // A API retorna EntityModel com 'pedido' ou 'content'
+    // Busca pedido atual pra pegar os itens
+    const pedidoAtual = await fetchPedidoById(pedidoId);
+
+    const pedidoDTO = {
+      itens: (pedidoAtual.itens || []).map((item) => ({
+        itemCardapioId: item.itemCardapioId,
+        quantidade: item.quantidade || 1,
+      })),
+      observacao: pedidoAtual.observacao || null,
+      status: status,
+    };
+
+    const response = await api.put(`/pedido/${pedidoId}`, pedidoDTO);
     const pedido = response.pedido || response.content || response;
-    
+
     return pedido;
   } catch (error) {
     logger.error(`Erro ao atualizar status do pedido ${pedidoId}:`, error);

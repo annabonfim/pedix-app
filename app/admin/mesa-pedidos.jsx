@@ -11,18 +11,17 @@ import { formatPedidoDate, translateStatus } from '../../utils/time';
 
 // ─── STATUS FLOW ─────────────────────────────────────────────────────────────
 // O garçom pode avançar o status nessa sequência
-const STATUS_FLOW = ['PENDENTE', 'PREPARANDO', 'PRONTO', 'ENTREGUE'];
+const STATUS_FLOW = ['EM_PREPARO', 'PRONTO', 'ENTREGUE'];
 
 const STATUS_CONFIG = {
-  PENDENTE:   { color: '#FFC107', bg: '#FFF3CD', label: 'Pendente',   icon: 'time-outline'             },
-  PREPARANDO: { color: '#17A2B8', bg: '#D1ECF1', label: 'Preparando', icon: 'flame-outline'             },
+  EM_PREPARO: { color: '#17A2B8', bg: '#D1ECF1', label: 'Em Preparo', icon: 'flame-outline'             },
   PRONTO:     { color: '#28A745', bg: '#D4EDDA', label: 'Pronto',     icon: 'checkmark-circle-outline'  },
   ENTREGUE:   { color: '#6C757D', bg: '#E2E3E5', label: 'Entregue',   icon: 'bag-check-outline'         },
   CANCELADO:  { color: '#DC3545', bg: '#F8D7DA', label: 'Cancelado',  icon: 'close-circle-outline'      },
 };
 
 function getStatusConfig(status) {
-  return STATUS_CONFIG[(status || '').toUpperCase()] || STATUS_CONFIG.PENDENTE;
+  return STATUS_CONFIG[(status || '').toUpperCase()] || STATUS_CONFIG.EM_PREPARO;
 }
 
 function getNextStatus(current) {
@@ -113,7 +112,7 @@ export default function AdminMesaPedidosScreen() {
     <View style={s.container}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+        <TouchableOpacity onPress={() => router.push('/admin/mesas')} style={s.backBtn}>
           <Ionicons name="arrow-back" size={22} color={theme.headerText} />
         </TouchableOpacity>
         <View style={s.headerInfo}>

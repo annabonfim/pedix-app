@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { csharpApi } from '../services/csharpAPi';
+import { api } from '../services/api';
 
 export function useMesas() {
   return useQuery({
     queryKey: ['mesas', 'list'],
     queryFn: async () => {
-      const res = await csharpApi.get('/mesas');
+      const res = await api.get('/mesas');
       return Array.isArray(res) ? res : res?.data || res?.items || [];
     },
     refetchInterval: 30_000,

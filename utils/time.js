@@ -70,6 +70,7 @@ export function translateStatus(status) {
   const statusMap = {
     'PENDENTE': 'Pendente',
     'PREPARANDO': 'Preparando',
+    'EM_PREPARO': 'Em Preparo',
     'PRONTO': 'Pronto',
     'ENTREGUE': 'Entregue',
     'CANCELADO': 'Cancelado',
