@@ -7,15 +7,18 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { ItemImage } from '../components/ItemImage';
 import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 import { createPedido } from '../services/pedidoService';
 import { APP_CONFIG } from '../config/constants';
 import { hasSelectedRestaurante } from '../utils/validation';
+import { colors } from '../styles/theme';
 import { logger } from '../utils/logger';
 
 export default function CartScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { cartItems, removeFromCart, updateItemQuantity, updateItemObservacao, clearCart } = useCart();
+  const { theme, toggleTheme } = useTheme();
   const [tableNumber, setTableNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingObservacaoIndex, setEditingObservacaoIndex] = useState(null);
@@ -181,24 +184,29 @@ export default function CartScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.header }]}>
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.push('/menu')}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <Text style={[styles.backArrow, { color: theme.headerText }]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Comanda - Mesa {tableNumber}</Text>
-        <View style={styles.backButton} />
+        <Text style={[styles.headerTitle, { color: theme.headerText }]}>Comanda - Mesa {tableNumber}</Text>
+        <TouchableOpacity style={styles.backButton} onPress={toggleTheme}>
+          <Ionicons
+            name={theme.mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
+            size={20} color={theme.headerText}
+          />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {cartItems.length === 0 ? (
           <Card>
             <View style={styles.emptyCart}>
-              <Ionicons name="cart-outline" size={64} color="#BDC3C7" />
-              <Text style={styles.emptyCartText}>Sua comanda está vazia</Text>
+              <Ionicons name="cart-outline" size={64} color={theme.textMuted} />
+              <Text style={[styles.emptyCartText, { color: theme.textSecondary }]}>Sua comanda está vazia</Text>
               <Button
                 title="Ver Cardápio"
                 onPress={() => router.push('/menu')}
@@ -216,7 +224,7 @@ export default function CartScreen() {
                   <View style={styles.cartItem}>
                     <ItemImage source={item.image} emoji={item.image} size={60} />
                     <View style={styles.itemContent}>
-                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={[styles.itemName, { color: theme.text }]}>{item.name}</Text>
                       <Text style={styles.itemPrice}>
                         R$ {item.price.toFixed(2)} {quantity > 1 && `× ${quantity} = R$ ${itemTotal.toFixed(2)}`}
                       </Text>
@@ -252,7 +260,7 @@ export default function CartScreen() {
                       >
                         <Text style={styles.quantityButtonText}>-</Text>
                       </TouchableOpacity>
-                      <Text style={styles.quantityText}>{quantity}</Text>
+                      <Text style={[styles.quantityText, { color: theme.text }]}>{quantity}</Text>
                       <TouchableOpacity
                         style={styles.quantityButton}
                         onPress={() => handleQuantityChange(index, 1)}
@@ -274,8 +282,8 @@ export default function CartScreen() {
 
             <Card>
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>R$ {calculateTotal().toFixed(2)}</Text>
+                <Text style={[styles.totalLabel, { color: theme.textSecondary }]}>Total</Text>
+                <Text style={[styles.totalValue, { color: theme.text }]}>R$ {calculateTotal().toFixed(2)}</Text>
               </View>
             </Card>
           </>
@@ -283,7 +291,7 @@ export default function CartScreen() {
       </ScrollView>
 
       {cartItems.length > 0 && (
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <Button
             title={isSubmitting ? 'Enviando...' : 'Enviar Pedido'}
             onPress={handleConfirmOrder}
@@ -303,16 +311,16 @@ export default function CartScreen() {
         onRequestClose={handleCancelObservacao}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Editar Observação</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Editar Observação</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               placeholder="Digite uma observação (opcional)"
               value={editingObservacaoText}
               onChangeText={setEditingObservacaoText}
               multiline
               numberOfLines={4}
-              placeholderTextColor="#95A5A6"
+              placeholderTextColor={colors.textMuted}
               autoFocus
             />
             <View style={styles.modalButtons}>

@@ -79,17 +79,19 @@ export default function OrdersScreen() {
     if (!itens?.length) return 'Sem itens';
     return itens
       .map((item) => {
-        const nome = item.itemCardapio?.nome || item.itemCardapio?.name || `Item ${item.itemCardapioId}`;
+        const nome = item.nome || item.itemCardapio?.nome || item.itemCardapio?.name || `Item ${item.itemCardapioId}`;
         return `${item.quantidade || 1}x ${nome}`;
       })
       .join(', ');
   };
 
-  const calculateTotal = (itens) => {
-    if (!itens?.length) return 0;
-    return itens.reduce((sum, item) => {
-      const preco = parseFloat(item.itemCardapio?.preco || item.itemCardapio?.price || 0);
-      return sum + preco * (item.quantidade || 1);
+  const calculateTotal = (pedido) => {
+    // A API já retorna o total calculado
+    if (pedido.total) return parseFloat(pedido.total);
+    // Fallback: soma subtotais dos itens
+    if (!pedido.itens?.length) return 0;
+    return pedido.itens.reduce((sum, item) => {
+      return sum + parseFloat(item.subtotal || item.precoUnitario * (item.quantidade || 1) || 0);
     }, 0);
   };
 
@@ -152,7 +154,7 @@ export default function OrdersScreen() {
           pedidosOrdenados.map((pedido) => {
             const canEdit = canEditPedido(pedido, 5);
             const timeRemaining = getTimeRemaining(pedido.dataCriacao, 5);
-            const total = calculateTotal(pedido.itens);
+            const total = calculateTotal(pedido);
             const status = translateStatus(pedido.status);
 
             return (
@@ -164,8 +166,8 @@ export default function OrdersScreen() {
                       {formatPedidoDate(pedido.dataCriacao)}
                     </Text>
                   </View>
-                  <View style={[s.statusBadge, getStatusStyle(pedido.status, theme)]}>
-                    <Text style={[s.statusText, { color: theme.text }]}>{status}</Text>
+                  <View style={[s.statusBadge, getStatusStyle(pedido.status)]}>
+                    <Text style={[s.statusText, { color: getStatusStyle(pedido.status).color }]}>{status}</Text>
                   </View>
                 </View>
 
@@ -204,13 +206,14 @@ export default function OrdersScreen() {
   );
 }
 
-function getStatusStyle(status, theme) {
+function getStatusStyle(status) {
   const map = {
-    PENDENTE: { backgroundColor: '#FFF3CD', borderColor: '#FFC107' },
-    PREPARANDO: { backgroundColor: '#D1ECF1', borderColor: '#17A2B8' },
-    PRONTO: { backgroundColor: '#D4EDDA', borderColor: '#28A745' },
-    ENTREGUE: { backgroundColor: '#E2E3E5', borderColor: '#6C757D' },
-    CANCELADO: { backgroundColor: '#F8D7DA', borderColor: '#DC3545' },
+    PENDENTE:   { backgroundColor: '#FFF3CD', borderColor: '#FFC107', color: '#856404' },
+    PREPARANDO: { backgroundColor: '#D1ECF1', borderColor: '#17A2B8', color: '#0C5460' },
+    EM_PREPARO: { backgroundColor: '#D1ECF1', borderColor: '#17A2B8', color: '#0C5460' },
+    PRONTO:     { backgroundColor: '#D4EDDA', borderColor: '#28A745', color: '#155724' },
+    ENTREGUE:   { backgroundColor: '#E2E3E5', borderColor: '#6C757D', color: '#383D41' },
+    CANCELADO:  { backgroundColor: '#F8D7DA', borderColor: '#DC3545', color: '#721C24' },
   };
   return map[status] || map.PENDENTE;
 }
