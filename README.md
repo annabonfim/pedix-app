@@ -97,9 +97,9 @@ O app se comunica com a **API Java** (Spring Boot, porta 8080) para todas as fun
 
 ### Por que o login está mockado?
 
-A autenticação foi originalmente planejada para a **API C#** (.NET), que não pôde ser executada no ambiente de avaliação (dependências .NET/Oracle). Os dados de login foram **mockados** em `services/mockData.js`.
+A autenticação utiliza a **API C#** (.NET), que já foi desenvolvida pela equipe. Porém, como ela depende de **.NET 8 SDK + Oracle** para rodar, o professor de Mobile não conseguirá executá-la no ambiente de avaliação. Por isso, os dados de login foram **mockados** em `services/mockData.js` para garantir que o app funcione sem essa dependência.
 
-> Quando a API C# estiver disponível, basta restaurar os imports em `services/authService.js`.
+> A API C# existe e está funcional — o mock é apenas para facilitar a avaliação. Para integrar, basta restaurar os imports em `services/authService.js`.
 
 ---
 
@@ -184,13 +184,14 @@ cd <pasta-da-api-java>
 ```
 Roda em `http://localhost:8080`.
 
-### 🟦 API C# (Clientes e Garçons — autenticação futura)
+### 🟦 API C# (Clientes e Garçons — autenticação)
 
 **Repositório:** [TODO: adicionar link]
 
-> ℹ️ Login mockado no app durante a Sprint 3. API C# será integrada quando disponível.
+> ⚠️ A API C# já foi desenvolvida pela equipe, mas **requer .NET 8 SDK + Oracle** para rodar. Como o professor de Mobile não terá esse ambiente configurado, o login no app está **mockado** para facilitar a avaliação. A integração real está preparada em `services/csharpAPi.js`.
 
 ```bash
+# Para quem tiver o ambiente .NET + Oracle configurado:
 git clone <url-da-api-csharp>
 cd <pasta-da-api-csharp>
 dotnet restore
