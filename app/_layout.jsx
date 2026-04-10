@@ -10,7 +10,7 @@ import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { APP_CONFIG, RESTAURANTE_VALIDO_ID } from '../config/constants';
 import { clearAllData } from '../utils/storage';
 
-// QUERY CLIENT 
+// CONFIGURAÇÃO DO TANSTACK QUERY
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -20,7 +20,7 @@ const queryClient = new QueryClient({
   },
 });
 
-//  ICON HELPER 
+// AUXILIAR DE ÍCONES
 const Icon = ({ name, size, color }) => {
   const icons = {
     home: 'home-outline',
@@ -32,7 +32,7 @@ const Icon = ({ name, size, color }) => {
   return <Ionicons name={icons[name] || 'ellipse-outline'} size={size || 20} color={color || '#666'} />;
 };
 
-//  AUTH GUARD (dentro de AuthProvider) 
+// PROTEÇÃO DE ROTAS (redireciona pra login se não autenticado)
 function AuthGuard({ children }) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
@@ -53,7 +53,7 @@ function AuthGuard({ children }) {
   return children;
 }
 
-//  TABS LAYOUT 
+// LAYOUT DAS ABAS (muda conforme perfil do usuário)
 function TabLayout() {
   const [hasRestaurante, setHasRestaurante] = useState(false);
   const { isAuthenticated, isAdmin, user } = useAuth();
@@ -171,7 +171,7 @@ function TabLayout() {
   );
 }
 
-//  ROOT LAYOUT 
+// LAYOUT PRINCIPAL
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>

@@ -37,7 +37,7 @@ export default function ScanScreen() {
     } catch (e) { logger.warn('Erro ao carregar dados salvos', e); }
   };
 
-  // ─── QR SCAN ──────────────────────────────────────────────────────────────
+  // ─── ESCANEAR QR CODE ─────────────────────────────────────────────────────
   const handleOpenCamera = async () => {
     if (!permission?.granted) {
       const result = await requestPermission();
@@ -99,7 +99,7 @@ export default function ScanScreen() {
     }
   };
 
-  // ─── MANUAL CONFIRM ───────────────────────────────────────────────────────
+  // ─── CONFIRMAR MANUALMENTE ────────────────────────────────────────────────
   const handleConfirmar = async () => {
     if (!tableNumber) { Alert.alert('Campo obrigatório', 'Informe o número da mesa.'); return; }
     if (!selectedRestaurante) { Alert.alert('Campo obrigatório', 'Selecione o restaurante.'); return; }
@@ -116,7 +116,7 @@ export default function ScanScreen() {
     ]);
   };
 
-  // ─── CAMERA VIEW ──────────────────────────────────────────────────────────
+  // ─── TELA DA CÂMERA ───────────────────────────────────────────────────────
   if (scanning) {
     return (
       <View style={{ flex: 1, backgroundColor: '#000' }}>
@@ -138,7 +138,7 @@ export default function ScanScreen() {
     );
   }
 
-  // ─── MAIN SCREEN ──────────────────────────────────────────────────────────
+  // ─── TELA PRINCIPAL ───────────────────────────────────────────────────────
   return (
     <View style={[shared.screen, { backgroundColor: theme.background }]}>
 

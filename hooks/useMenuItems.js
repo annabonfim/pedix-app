@@ -2,7 +2,7 @@
 // TanStack Query hooks para cardápio (API Java)
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchMenuItems, fetchMenuItemById } from '../services/menuService';
+import { fetchMenuItems } from '../services/menuService';
 
 // ─── QUERY KEYS ───────────────────────────────────────────────────────────────
 export const menuKeys = {
@@ -23,12 +23,3 @@ export function useMenuItems(categoria = null) {
   });
 }
 
-// Detalhe de um item
-export function useMenuItem(itemId) {
-  return useQuery({
-    queryKey: menuKeys.detail(itemId),
-    queryFn: () => fetchMenuItemById(itemId),
-    enabled: !!itemId,
-    staleTime: 10 * 60 * 1000, // 10 min
-  });
-}

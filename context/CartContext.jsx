@@ -3,7 +3,7 @@ import { createContext, useState, useContext } from 'react';
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  // Cada item no carrinho agora tem: id, name, price, image, description, observacao, quantity
+  // Cada item no carrinho tem: id, nome, preço, imagem, descrição, observação e quantidade
   const [cartItems, setCartItems] = useState([]);
 
   const addToCart = (item) => {
@@ -83,7 +83,7 @@ export function CartProvider({ children }) {
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
+    throw new Error('useCart deve ser usado dentro de <CartProvider>');
   }
   return context;
 };

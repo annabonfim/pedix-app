@@ -28,7 +28,7 @@ export async function createPedido(comandaId, items, observacao = '') {
     
     logger.log('✅ Resposta da API:', response);
     
-    // A API retorna EntityModel com 'pedido' ou 'content'
+    // A API retorna os dados dentro de 'pedido' ou 'content'
     const pedido = response.pedido || response.content || response;
     
     return pedido;
@@ -43,11 +43,11 @@ export async function fetchPedidosByComanda(comandaId) {
   try {
     const response = await api.get(`/pedido/comanda/${comandaId}`);
     
-    // API pode retornar array direto ou array de EntityModel
+    // A API pode retornar os dados em formatos diferentes
     let pedidos = [];
     
     if (Array.isArray(response)) {
-      // Extrai content de cada EntityModel se necessário
+      // Extrai os dados de cada pedido
       pedidos = response.map((item) => {
         return item.content || item;
       });
@@ -68,7 +68,7 @@ export async function fetchPedidoById(pedidoId) {
   try {
     const response = await api.get(`/pedido/${pedidoId}`);
     
-    // EntityModel tem 'content' com os dados reais
+    // Extrai os dados do pedido da resposta
     const pedido = response.content || response;
     
     return pedido;
@@ -135,7 +135,7 @@ export async function atualizarPedido(pedidoId, comandaId, items, observacao = '
       logger.log('✅ Pedido atualizado com sucesso:', pedido);
       return pedido;
     } catch (putError) {
-      // Se PUT não funcionar, usa fallback: cancela e recria
+      // Se PUT não funcionar, usa alternativa: cancela e recria
       logger.warn('⚠️ PUT falhou, usando fallback (cancelar e recriar)...', putError);
       
       if (putError.status === 404 || putError.status === 405 || putError.status >= 500) {

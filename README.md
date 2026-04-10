@@ -125,7 +125,7 @@ A autenticação foi originalmente planejada para a **API C#** (.NET), que não 
 
 Escaneie o QR Code abaixo com o app para selecionar a mesa 1 automaticamente:
 
-![QR Code Mesa 1](assets/qr-code-mesa1.png)
+<img src="assets/qr-code-mesa1.png" alt="QR Code Mesa 1" width="200" />
 
 > ⚠️ A leitura de QR Code **só funciona no dispositivo físico** (via Expo Go no celular). No emulador, utilize a entrada manual de mesa.
 
@@ -228,7 +228,6 @@ pedix/
 ├── components/                   # Componentes reutilizáveis
 │   ├── Button.jsx
 │   ├── Card.jsx
-│   ├── Dropdown.jsx
 │   └── ItemImage.jsx
 ├── context/                      # Estado global
 │   ├── CartContext.jsx
@@ -252,8 +251,7 @@ pedix/
 │   ├── validation.js
 │   └── logger.js
 └── config/
-    ├── constants.js
-    └── emojiMap.js
+    └── constants.js
 ```
 
 ---

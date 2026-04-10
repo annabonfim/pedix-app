@@ -1,7 +1,6 @@
 // Serviço para buscar itens do cardápio
 
 import { api } from './api';
-import { getItemEmoji } from '../config/emojiMap';
 import { logger } from '../utils/logger';
 
 // Busca todos os itens do cardápio
@@ -33,18 +32,8 @@ export async function fetchMenuItems(categoria = null) {
     
     // Mapeia para o formato da aplicação
     return items.map((item) => {
-      // Prioridade: usar diretamente o que vem do banco (imagemUrl)
-      const imagemUrl = item.imagemUrl || item.image || item.imageUrl || null;
-      
-      let imageValue;
-      if (imagemUrl) {
-        // Se tem imagemUrl no banco, usa ela (pode ser URL ou emoji)
-        imageValue = imagemUrl;
-      } else {
-        // Se não tem imagemUrl, usa emojiMap como fallback
-        const emoji = getItemEmoji(item);
-        imageValue = emoji || '🍽️';
-      }
+      // Usa a imagem do banco, ou emoji padrão se não tiver
+      const imageValue = item.imagemUrl || item.image || item.imageUrl || '🍽️';
       
       return {
         id: String(item.id),
@@ -67,21 +56,11 @@ export async function fetchMenuItemById(itemId) {
   try {
     const response = await api.get(`/item-cardapio/${itemId}`);
     
-    // EntityModel tem 'content' com os dados reais
+    // Extrai os dados do item da resposta
     const item = response.content || response;
-    
-    // Prioridade: usar diretamente o que vem do banco (imagemUrl)
-    const imagemUrl = item.imagemUrl || item.image || item.imageUrl || null;
-    
-    let imageValue;
-    if (imagemUrl) {
-      // Se tem imagemUrl no banco, usa ela (pode ser URL ou emoji)
-      imageValue = imagemUrl;
-    } else {
-      // Se não tem imagemUrl, usa emojiMap como fallback
-      const emoji = getItemEmoji(item);
-      imageValue = emoji || '🍽️';
-    }
+
+    // Usa a imagem do banco, ou emoji padrão se não tiver
+    const imageValue = item.imagemUrl || item.image || item.imageUrl || '🍽️';
     
     return {
       id: String(item.id),
@@ -98,21 +77,5 @@ export async function fetchMenuItemById(itemId) {
   }
 }
 
-// Agrupa os itens por categoria (ex: Pratos, Bebidas, etc)
-export function groupItemsByCategory(items) {
-  const grouped = {};
-  
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    const category = item.category || 'Outros';
-    
-    if (!grouped[category]) {
-      grouped[category] = [];
-    }
-    
-    grouped[category].push(item);
-  }
-  
-  return grouped;
-}
+
 

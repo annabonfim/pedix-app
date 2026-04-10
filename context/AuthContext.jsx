@@ -1,5 +1,5 @@
 // context/AuthContext.jsx
-// Gerencia autenticação JWT com 2 perfis: CLIENTE e ADMIN
+// Gerencia autenticação com 2 perfis: CLIENTE e ADMIN (garçom)
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
@@ -15,10 +15,10 @@ import { getToken, saveUser, getSavedUser } from '../utils/storage';
 import { APP_CONFIG } from '../config/constants';
 import { logger } from '../utils/logger';
 
-// ─── ROLES ───────────────────────────────────────────────────────────────────
+// ─── TIPOS DE USUÁRIO ────────────────────────────────────────────────────────
 export { ROLES };
 
-// ─── CONTEXT ─────────────────────────────────────────────────────────────────
+// ─── CONTEXTO DE AUTENTICAÇÃO ────────────────────────────────────────────────
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
       }
     } catch (error) {
       logger.warn('Erro ao restaurar sessão:', error);
-      // Tenta usuário em cache como fallback offline
+      // Usa usuário salvo localmente como alternativa offline
       const cachedUser = await getSavedUser();
       if (cachedUser) setUser(cachedUser);
     } finally {
