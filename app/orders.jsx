@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { usePedidosByComanda, useDeletarPedido } from '../hooks/usePedidos';
+import { usePedidoStatusNotifications } from '../hooks/usePedidoStatusNotifications';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { APP_CONFIG } from '../config/constants';
@@ -37,6 +38,9 @@ export default function OrdersScreen() {
   } = usePedidosByComanda(tableNumber);
 
   const deletarMutation = useDeletarPedido(tableNumber);
+
+  // Dispara notificação local quando o status de algum pedido muda
+  usePedidoStatusNotifications(pedidos);
 
   // Ordena por mais recente
   const pedidosOrdenados = [...pedidos].sort((a, b) => {
