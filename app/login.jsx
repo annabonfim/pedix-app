@@ -185,6 +185,15 @@ export default function LoginScreen() {
           </View>
         </View>
 
+        {/* Link para tela "Sobre o App" */}
+        <TouchableOpacity
+          style={s.sobreLink}
+          onPress={() => router.push('/sobre')}
+        >
+          <Ionicons name="information-circle-outline" size={14} color="rgba(255,255,255,0.6)" />
+          <Text style={s.sobreLinkText}>Sobre o app</Text>
+        </TouchableOpacity>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -254,4 +263,10 @@ const s = StyleSheet.create({
 
   signupLink:     { alignItems: 'center', marginHorizontal: 16, marginBottom: 12 },
   signupLinkText: { fontSize: 14, color: 'rgba(255,255,255,0.75)' },
+
+  sobreLink: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, marginTop: 16, marginHorizontal: 16,
+  },
+  sobreLinkText: { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
 });
