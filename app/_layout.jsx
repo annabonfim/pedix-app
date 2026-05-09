@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { APP_CONFIG, RESTAURANTE_VALIDO_ID } from '../config/constants';
 import { clearAllData } from '../utils/storage';
+import { requestNotificationPermission, setupAndroidChannel } from '../utils/notifications';
 
 // CONFIGURAÇÃO DO TANSTACK QUERY
 const queryClient = new QueryClient({
@@ -77,6 +78,8 @@ function TabLayout() {
         // Descomente para limpar dados em dev:
         // await clearAllData();
       }
+      await setupAndroidChannel();
+      await requestNotificationPermission();
       await checkRestaurante();
       interval = setInterval(checkRestaurante, 1000);
     };
@@ -167,6 +170,12 @@ function TabLayout() {
         <Tabs.Screen name="signup" options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="admin/mesa-pedidos" options={{ href: null }} />
         <Tabs.Screen name="gerente/item-form" options={{ href: null }} />
+        <Tabs.Screen name="gerente/relatorios" options={{ href: null }} />
+        <Tabs.Screen name="gerente/categorias" options={{ href: null }} />
+        <Tabs.Screen name="avaliacoes" options={{ href: null }} />
+        <Tabs.Screen name="avaliacao-form" options={{ href: null }} />
+        <Tabs.Screen name="historico" options={{ href: null }} />
+        <Tabs.Screen name="sobre" options={{ href: null }} />
       </Tabs>
     </CartProvider>
   );
