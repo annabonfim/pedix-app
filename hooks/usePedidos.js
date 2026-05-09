@@ -26,7 +26,10 @@ export function usePedidosByComanda(comandaId) {
     queryKey: pedidoKeys.byComanda(comandaId),
     queryFn: () => fetchPedidosByComanda(comandaId),
     enabled: !!comandaId,
-    refetchInterval: 30_000, // atualiza a cada 30s para ver status em tempo real
+    refetchInterval: 5_000, // atualiza a cada 5s para ver status em tempo real
+    refetchIntervalInBackground: true,
+    refetchOnMount: 'always',
+    staleTime: 0,
     retry: 2,
   });
 }

@@ -1,14 +1,15 @@
 // Constantes da aplicação
 
-const getApiBaseUrl = () => {
-  if (typeof __DEV__ !== 'undefined' && __DEV__) {
-    return 'http://10.0.2.2:8080/api';
-  }
-  return 'https://pedix-api-production.com/api';
-};
+// API Java (deployada no Azure) — cardápio, categorias, avaliações, histórico, relatórios
+const JAVA_API_URL = 'https://pedix-api-aab0evapangybdh7.eastus-01.azurewebsites.net/api';
+
+// API .NET (TODO: adicionar URL quando disponível) — pedidos, mesas, comandas, pagamentos
+const DOTNET_API_URL = 'http://10.0.2.2:5070/api';
 
 export const APP_CONFIG = {
-  API_BASE_URL: getApiBaseUrl(),
+  API_BASE_URL: JAVA_API_URL, // default: API Java (cardápio)
+  JAVA_API_URL,
+  DOTNET_API_URL,
   STORAGE_KEYS: {
     USER_NAME: 'user:name',
     TABLE_NUMBER: 'table:number',
