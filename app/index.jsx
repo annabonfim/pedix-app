@@ -17,7 +17,7 @@ export default function IndexScreen() {
   const { theme, toggleTheme } = useTheme();
   const [tableNumber, setTableNumber] = useState(null);
 
-  const { isAdmin } = useAuth();
+  const { isAdmin, isGerente } = useAuth();
 
   useEffect(() => {
     AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER)
@@ -37,16 +37,27 @@ export default function IndexScreen() {
   const mesasLivres = mesas.filter(m => (m.status || '').toUpperCase() === 'LIVRE').length;
   const mesasOcupadas = mesas.filter(m => (m.status || '').toUpperCase() === 'OCUPADA').length;
 
-  const quickItems = isAdmin
+  const quickItems = isGerente
     ? [
-        { icon: 'grid-outline',      label: 'Mesas',    route: '/admin/mesas' },
-        { icon: 'restaurant-outline', label: 'Cardápio', route: '/menu' },
-        { icon: 'receipt-outline',    label: 'Pedidos',  route: '/orders' },
+        { icon: 'grid-outline',         label: 'Mesas',      route: '/admin/mesas' },
+        { icon: 'restaurant-outline',   label: 'Cardápio',   route: '/menu' },
+        { icon: 'pricetags-outline',    label: 'Categorias', route: '/gerente/categorias' },
+        { icon: 'bar-chart-outline',    label: 'Relatórios', route: '/gerente/relatorios' },
+        { icon: 'star-outline',         label: 'Avaliações', route: '/avaliacoes' },
+        { icon: 'time-outline',         label: 'Histórico',  route: '/historico' },
+      ]
+    : isAdmin
+    ? [
+        { icon: 'grid-outline',         label: 'Mesas',      route: '/admin/mesas' },
+        { icon: 'restaurant-outline',   label: 'Cardápio',   route: '/menu' },
+        { icon: 'star-outline',         label: 'Avaliações', route: '/avaliacoes' },
+        { icon: 'time-outline',         label: 'Histórico',  route: '/historico' },
       ]
     : [
-        { icon: 'restaurant-outline', label: 'Cardápio', route: '/menu' },
-        { icon: 'receipt-outline',    label: 'Pedidos',  route: '/orders' },
-        { icon: 'qr-code-outline',    label: 'Mesa',     route: '/scan' },
+        { icon: 'restaurant-outline', label: 'Cardápio',   route: '/menu' },
+        { icon: 'receipt-outline',    label: 'Pedidos',    route: '/orders' },
+        { icon: 'star-outline',       label: 'Avaliações', route: '/avaliacoes' },
+        { icon: 'time-outline',       label: 'Histórico',  route: '/historico' },
       ];
 
   return (
@@ -193,16 +204,16 @@ const s = StyleSheet.create({
 
   // Quick cards
   quickRow: {
-    flexDirection: 'row', gap: 10,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
     marginTop: -20, paddingHorizontal: 16,
   },
   quickCard: {
-    flex: 1, borderRadius: 12, padding: 14, borderWidth: 1,
+    width: '31%', borderRadius: 12, padding: 12, borderWidth: 1,
     alignItems: 'center', gap: 6,
     shadowColor: '#1E3A5F', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
   },
-  quickLabel: { fontSize: 11, fontWeight: '600' },
+  quickLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
 
   content: { padding: 16, gap: 12, paddingTop: 20 },
 
