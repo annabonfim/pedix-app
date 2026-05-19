@@ -34,12 +34,18 @@ export async function fetchMenuItems(categoria = null) {
     return items.map((item) => {
       // Usa a imagem do banco, ou emoji padrão se não tiver
       const imageValue = item.imagemUrl || item.image || item.imageUrl || '🍽️';
-      
+
+      // API Azure retorna `categoriaNome` (string em MAIÚSCULO).
+      // Fallback pros nomes antigos pra não quebrar nada legado.
+      const categoryValue =
+        item.categoriaNome || item.categoria || item.category || 'Outros';
+
       return {
         id: String(item.id),
         name: item.nome || item.name || 'Item sem nome',
         price: parseFloat(item.preco || item.price || 0),
-        category: item.categoria || item.category || 'Outros',
+        category: categoryValue,
+        categoryId: item.categoriaId ?? null,
         description: item.descricao || item.description || '',
         image: imageValue,
         available: item.disponivel !== false && item.available !== false,
@@ -59,7 +65,8 @@ function parseItemResponse(response) {
     id: String(item.id),
     name: item.nome || item.name || '',
     price: parseFloat(item.preco || item.price || 0),
-    category: item.categoria || item.category || 'PRATO',
+    category: item.categoriaNome || item.categoria || item.category || 'PRATO',
+    categoryId: item.categoriaId ?? null,
     description: item.descricao || item.description || '',
     image: item.imagemUrl || item.image || '🍽️',
     available: item.disponivel !== false,
@@ -129,7 +136,8 @@ export async function fetchMenuItemById(itemId) {
       id: String(item.id),
       name: item.nome || item.name || 'Item sem nome',
       price: parseFloat(item.preco || item.price || 0),
-      category: item.categoria || item.category || 'Outros',
+      category: item.categoriaNome || item.categoria || item.category || 'Outros',
+      categoryId: item.categoriaId ?? null,
       description: item.descricao || item.description || '',
       image: imageValue,
       available: item.disponivel !== false && item.available !== false,
