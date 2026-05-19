@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { usePedidosByComanda, useDeletarPedido } from '../hooks/usePedidos';
 import { usePedidoStatusNotifications } from '../hooks/usePedidoStatusNotifications';
+import { TuttiLoading } from '../components/Tutti/TuttiLoading';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { APP_CONFIG } from '../config/constants';
@@ -105,8 +106,7 @@ export default function OrdersScreen() {
   if (isLoading) {
     return (
       <View style={[s.container, s.center]}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={s.loadingText}>Carregando pedidos...</Text>
+        <TuttiLoading size="large" message="Buscando seus pedidos..." />
       </View>
     );
   }

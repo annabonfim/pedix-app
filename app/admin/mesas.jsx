@@ -2,12 +2,13 @@
 // Tela exclusiva do GARÇOM/ADMIN
 // Mostra todas as mesas com status e acesso aos pedidos de cada uma
 
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useMesas } from '../../hooks/useMesas';
+import { TuttiLoading } from '../../components/Tutti/TuttiLoading';
 
 // ─── STATUS DA MESA ──────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -40,8 +41,7 @@ export default function AdminMesasScreen() {
   if (isLoading) {
     return (
       <View style={[s.container, s.center]}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={s.loadingText}>Carregando mesas...</Text>
+        <TuttiLoading size="large" message="Carregando mesas..." />
       </View>
     );
   }

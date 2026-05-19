@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useRelatorios } from '../../hooks/useRelatorios';
 import { colors, shared } from '../../styles/theme';
+import { TuttiLoading } from '../../components/Tutti/TuttiLoading';
 
 const TIPO_ICON = {
   VENDAS: 'trending-up',
@@ -45,8 +46,7 @@ export default function RelatoriosScreen() {
 
       {isLoading ? (
         <View style={s.center}>
-          <ActivityIndicator size="large" color={colors.orange} />
-          <Text style={[s.muted, { color: theme.textSecondary }]}>Carregando relatórios...</Text>
+          <TuttiLoading size="large" message="Carregando relatórios..." />
         </View>
       ) : relatorios.length === 0 ? (
         <View style={s.center}>

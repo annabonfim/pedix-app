@@ -1,12 +1,13 @@
 // app/avaliacoes.jsx
 // Lista de avaliações dos clientes (visível para Gerente e Cliente)
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useAvaliacoes, useDeleteAvaliacao } from '../hooks/useAvaliacoes';
 import { colors, shared } from '../styles/theme';
+import { TuttiLoading } from '../components/Tutti/TuttiLoading';
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -77,7 +78,7 @@ export default function AvaliacoesScreen() {
 
       {isLoading ? (
         <View style={s.center}>
-          <ActivityIndicator size="large" color={colors.orange} />
+          <TuttiLoading size="large" message="Carregando avaliações..." />
         </View>
       ) : avaliacoes.length === 0 ? (
         <View style={s.center}>

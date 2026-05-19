@@ -1,13 +1,14 @@
 // app/historico.jsx
 // Tela de histórico de mudanças de status dos pedidos
 // Cliente vê os pedidos da sua mesa, gerente/garçom vê tudo
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useHistoricos } from '../hooks/useHistoricos';
 import { translateStatus } from '../utils/time';
 import { colors, shared } from '../styles/theme';
+import { TuttiLoading } from '../components/Tutti/TuttiLoading';
 
 const STATUS_COLOR = {
   EM_PREPARO: '#F4B400',
@@ -78,7 +79,7 @@ export default function HistoricoScreen() {
 
       {isLoading ? (
         <View style={s.center}>
-          <ActivityIndicator size="large" color={colors.orange} />
+          <TuttiLoading size="large" message="Carregando histórico..." />
         </View>
       ) : grupos.length === 0 ? (
         <View style={s.center}>

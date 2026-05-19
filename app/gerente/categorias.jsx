@@ -15,6 +15,7 @@ import {
   useDeleteCategoria,
 } from '../../hooks/useCategorias';
 import { colors, shared } from '../../styles/theme';
+import { TuttiLoading } from '../../components/Tutti/TuttiLoading';
 
 export default function CategoriasScreen() {
   const router = useRouter();
@@ -101,7 +102,7 @@ export default function CategoriasScreen() {
 
       {isLoading ? (
         <View style={s.center}>
-          <ActivityIndicator size="large" color={colors.orange} />
+          <TuttiLoading size="large" message="Carregando categorias..." />
         </View>
       ) : categorias.length === 0 ? (
         <View style={s.center}>

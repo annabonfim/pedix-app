@@ -2,12 +2,13 @@
 // Tela exclusiva do GARÇOM/ADMIN
 // Mostra todos os pedidos de uma mesa específica e permite atualizar status
 
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { usePedidosByComanda, useAtualizarStatus } from '../../hooks/usePedidos';
 import { formatPedidoDate, translateStatus } from '../../utils/time';
+import { TuttiLoading } from '../../components/Tutti/TuttiLoading';
 
 // ─── STATUS FLOW ─────────────────────────────────────────────────────────────
 // O garçom pode avançar o status nessa sequência
@@ -102,8 +103,7 @@ export default function AdminMesaPedidosScreen() {
   if (isLoading) {
     return (
       <View style={[s.container, s.center]}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={s.loadingText}>Carregando pedidos...</Text>
+        <TuttiLoading size="large" message="Carregando pedidos..." />
       </View>
     );
   }
