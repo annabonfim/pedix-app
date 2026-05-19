@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,6 +18,17 @@ export default function IndexScreen() {
   const [tableNumber, setTableNumber] = useState(null);
 
   const { isAdmin, isGerente } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sair da conta',
+      'Deseja voltar para a tela de login?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: logout },
+      ]
+    );
+  };
 
   useEffect(() => {
     AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER)
@@ -53,11 +64,15 @@ export default function IndexScreen() {
         { icon: 'star-outline',         label: 'Avaliações', route: '/avaliacoes' },
         { icon: 'time-outline',         label: 'Histórico',  route: '/historico' },
       ]
-    : [
+    : tableNumber
+    ? [
         { icon: 'restaurant-outline', label: 'Cardápio',   route: '/menu' },
         { icon: 'receipt-outline',    label: 'Pedidos',    route: '/orders' },
         { icon: 'star-outline',       label: 'Avaliações', route: '/avaliacoes' },
         { icon: 'time-outline',       label: 'Histórico',  route: '/historico' },
+      ]
+    : [
+        { icon: 'qr-code-outline', label: 'Selecionar mesa', route: '/scan' },
       ];
 
   return (
@@ -80,7 +95,7 @@ export default function IndexScreen() {
                 size={20} color="rgba(255,255,255,0.75)"
               />
             </TouchableOpacity>
-            <TouchableOpacity onPress={logout} style={s.logoutBtn}>
+            <TouchableOpacity onPress={handleLogout} style={s.logoutBtn}>
               <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.75)" />
             </TouchableOpacity>
           </View>
