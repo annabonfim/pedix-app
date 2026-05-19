@@ -28,7 +28,9 @@ export async function requestNotificationPermission() {
   }
 }
 
-// Cria canal Android (necessário no Android 8+)
+// Cria canais Android (necessário no Android 8+)
+// - 'pedidos': mudança de status do pedido (alta prioridade, vibra)
+// - 'tutti':   sugestões proativas do assistente (prioridade normal)
 export async function setupAndroidChannel() {
   if (Platform.OS !== 'android') return;
   try {
@@ -39,8 +41,14 @@ export async function setupAndroidChannel() {
       lightColor: '#FF6B35',
       sound: 'default',
     });
+    await Notifications.setNotificationChannelAsync('tutti', {
+      name: 'Sugestões do Tutti',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      lightColor: '#FF6B35',
+      sound: 'default',
+    });
   } catch (error) {
-    logger.warn('Erro ao criar canal Android:', error);
+    logger.warn('Erro ao criar canais Android:', error);
   }
 }
 
@@ -58,6 +66,24 @@ export async function notifyStatusPedido({ title, body, data = {} }) {
     });
   } catch (error) {
     logger.warn('Erro ao disparar notificação:', error);
+  }
+}
+
+// Notificação proativa do Tutti — sugere ajuda quando o usuário fica
+// inativo na tela do cardápio. Prioridade normal (não intrusivo).
+export async function notifyTuttiProactive() {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🤖 Tutti aqui!',
+        body: 'Tá em dúvida do que pedir? Posso te dar umas sugestões 🍝',
+        data: { action: 'open_tutti' },
+        sound: 'default',
+      },
+      trigger: null,
+    });
+  } catch (error) {
+    logger.warn('Erro ao disparar notificação do Tutti:', error);
   }
 }
 

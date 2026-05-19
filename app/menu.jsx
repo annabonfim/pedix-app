@@ -1,12 +1,15 @@
 // app/menu.jsx
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useMenuItems, useDeleteMenuItem } from '../hooks/useMenuItems';
+import { useTuttiProactiveNotification } from '../hooks/useTuttiProactiveNotification';
 import { useCart } from '../context/CartContext';
+import { TuttiFAB } from '../components/Tutti/TuttiFAB';
+import { TuttiLoading } from '../components/Tutti/TuttiLoading';
 import { ItemImage } from '../components/ItemImage';
 import { colors, shared, radius, typography } from '../styles/theme';
 import { CATEGORIES } from '../config/constants';
@@ -17,16 +20,40 @@ const CATS = [ALL, ...CATEGORIES];
 export default function MenuScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { logout, isGerente } = useAuth();
+  const { logout, isAdmin, isGerente } = useAuth();
   const { addItem, cartCount } = useCart();
   const deleteMutation = useDeleteMenuItem();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sair da conta',
+      'Deseja voltar para a tela de login?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: logout },
+      ]
+    );
+  };
 
   const [selectedCat, setSelectedCat] = useState(ALL);
   const [search, setSearch] = useState('');
 
-  const { data: items = [], isLoading, refetch, isFetching } = useMenuItems(
-    selectedCat.value
+  // Busca sempre todos os itens; filtro de categoria é client-side abaixo
+  // (a API Azure usa `categoriaId` numérico, não o nome do enum)
+  const { data: items = [], isLoading, refetch, isFetching } = useMenuItems();
+
+  // Tutti proativo: notifica o cliente se ele ficar 20s parado no cardápio.
+  // Só roda quando a tela está focada e só pra clientes (não admin/gerente).
+  const [isFocused, setIsFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, [])
   );
+  const { registerInteraction } = useTuttiProactiveNotification({
+    active: isFocused && !isAdmin && !isGerente,
+  });
 
   const handleDelete = (item) => {
     Alert.alert(
@@ -55,6 +82,8 @@ export default function MenuScreen() {
   const filtered = items
     .filter(item =>
       item.available !== false &&
+      (selectedCat.value === null ||
+        (item.category || '').toUpperCase() === selectedCat.value.toUpperCase()) &&
       (search === '' || item.name.toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) => {
@@ -80,7 +109,7 @@ export default function MenuScreen() {
                 size={20} color="rgba(255,255,255,0.75)"
               />
             </TouchableOpacity>
-            <TouchableOpacity onPress={logout} style={{ padding: 4 }}>
+            <TouchableOpacity onPress={handleLogout} style={{ padding: 4 }}>
               <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.75)" />
             </TouchableOpacity>
             <TouchableOpacity style={s.cartBtn} onPress={() => router.push('/cart')}>
@@ -101,10 +130,11 @@ export default function MenuScreen() {
             style={[s.searchInput, { color: theme.text }]}
             placeholder="Buscar no cardápio..."
             placeholderTextColor={colors.textMuted}
-            value={search} onChangeText={setSearch}
+            value={search}
+            onChangeText={(t) => { setSearch(t); registerInteraction(); }}
           />
           {search !== '' && (
-            <TouchableOpacity onPress={() => setSearch('')}>
+            <TouchableOpacity onPress={() => { setSearch(''); registerInteraction(); }}>
               <Ionicons name="close-circle" size={16} color={colors.textSub} />
             </TouchableOpacity>
           )}
@@ -118,7 +148,7 @@ export default function MenuScreen() {
             <TouchableOpacity
               key={cat.label}
               style={[s.chip, selectedCat.value === cat.value && s.chipActive]}
-              onPress={() => setSelectedCat(cat)}
+              onPress={() => { setSelectedCat(cat); registerInteraction(); }}
             >
               <Text style={[s.chipText, selectedCat.value === cat.value && s.chipTextActive]}>{cat.label}</Text>
             </TouchableOpacity>
@@ -129,11 +159,13 @@ export default function MenuScreen() {
       {/* Lista de itens */}
       {isLoading ? (
         <View style={s.center}>
-          <ActivityIndicator size="large" color={colors.orange} />
-          <Text style={[s.loadingText, { color: theme.textSecondary }]}>Carregando cardápio...</Text>
+          <TuttiLoading size="large" message="Carregando cardápio..." />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={s.list}>
+        <ScrollView
+          contentContainerStyle={s.list}
+          onScrollBeginDrag={registerInteraction}
+        >
           {isGerente && (
             <TouchableOpacity
               style={s.newItemBtn}
@@ -154,7 +186,10 @@ export default function MenuScreen() {
               <TouchableOpacity
                 key={item.id}
                 style={[s.itemCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
-                onPress={() => router.push({ pathname: '/item', params: { id: item.id, name: item.name, price: String(item.price), description: item.description || '', image: item.image || '' } })}
+                onPress={() => {
+                  registerInteraction();
+                  router.push({ pathname: '/item', params: { id: item.id, name: item.name, price: String(item.price), description: item.description || '', image: item.image || '' } });
+                }}
                 activeOpacity={0.8}
               >
                 <View style={[s.itemEmoji, { backgroundColor: theme.background }]}>
@@ -200,7 +235,7 @@ export default function MenuScreen() {
                       )}
                       <TouchableOpacity
                         style={s.addBtn}
-                        onPress={() => addItem(item)}
+                        onPress={() => { addItem(item); registerInteraction(); }}
                       >
                         <Ionicons name="add" size={18} color="#FFFFFF" />
                       </TouchableOpacity>
@@ -212,6 +247,9 @@ export default function MenuScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* Assistente de IA (apenas para clientes finais, não admin/gerente) */}
+      {!isAdmin && !isGerente && <TuttiFAB bottomOffset={88} />}
     </View>
   );
 }

@@ -8,12 +8,13 @@ import { useAuth } from '../context/AuthContext';
 import { useDeleteMenuItem } from '../hooks/useMenuItems';
 import { useTheme } from '../context/ThemeContext';
 import { colors } from '../styles/theme';
+import { TuttiFAB } from '../components/Tutti/TuttiFAB';
 
 export default function ItemDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { addItem } = useCart();
-  const { isGerente } = useAuth();
+  const { isAdmin, isGerente } = useAuth();
   const { theme } = useTheme();
   const deleteMutation = useDeleteMenuItem();
   const [observacao, setObservacao] = useState('');
@@ -164,6 +165,9 @@ export default function ItemDetail() {
           <Text style={s.addBtnText}>  Adicionar</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Assistente de IA (apenas para clientes finais) */}
+      {!isAdmin && !isGerente && <TuttiFAB bottomOffset={100} />}
     </View>
   );
 }
