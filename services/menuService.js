@@ -73,13 +73,29 @@ function parseItemResponse(response) {
   };
 }
 
+// Mapeamento estático: nome da categoria (como aparece na UI) → categoriaId
+// (FK numérica que a API Java passou a exigir no POST/PUT). As 3 categorias
+// "core" do cardápio do squad são fixas (vide config/constants.js).
+const CATEGORIA_ID_BY_NAME = {
+  PRATO: 1,
+  BEBIDA: 2,
+  SOBREMESA: 3,
+};
+
+function resolveCategoriaId(categoryName) {
+  if (!categoryName) return null;
+  const id = CATEGORIA_ID_BY_NAME[categoryName.toUpperCase()];
+  return id || null;
+}
+
 // Cria um novo item no cardápio
 export async function createMenuItem(itemData) {
   try {
     const payload = {
       nome: itemData.name,
       preco: itemData.price,
-      categoria: itemData.category,
+      categoria: itemData.category,                  // backwards compat
+      categoriaId: resolveCategoriaId(itemData.category), // novo schema Java
       descricao: itemData.description || '',
       disponivel: itemData.available !== false,
       imagemUrl: itemData.image || null,
@@ -98,7 +114,8 @@ export async function updateMenuItem(itemId, itemData) {
     const payload = {
       nome: itemData.name,
       preco: itemData.price,
-      categoria: itemData.category,
+      categoria: itemData.category,                  // backwards compat
+      categoriaId: resolveCategoriaId(itemData.category), // novo schema Java
       descricao: itemData.description || '',
       disponivel: itemData.available !== false,
       imagemUrl: itemData.image || null,

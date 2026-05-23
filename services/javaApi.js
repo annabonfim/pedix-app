@@ -13,6 +13,9 @@ export async function javaRequest(endpoint, options = {}) {
   const method = options.method || 'GET';
   const body = options.body || null;
   const headers = options.headers || {};
+  // Timeout pra evitar loading eterno em rede ruim ou cold start travado.
+  // 30s é generoso o suficiente pro Azure tier Free acordar e responder.
+  const timeoutMs = options.timeoutMs || 30_000;
 
   const config = {
     method: method,
@@ -30,6 +33,10 @@ export async function javaRequest(endpoint, options = {}) {
   if (body) {
     config.body = JSON.stringify(body);
   }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  config.signal = controller.signal;
 
   const fullUrl = `${JAVA_API_BASE_URL}${endpoint}`;
   logger.log(`☕ Java ${method} ${fullUrl}`, body ? { body: JSON.parse(config.body) } : '');
@@ -74,6 +81,16 @@ export async function javaRequest(endpoint, options = {}) {
     logger.log(`✅ Java ${method} ${endpoint}:`, data);
     return data;
   } catch (error) {
+    // Timeout (AbortError) — fetch foi cancelado pelo nosso setTimeout
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error(
+        `Servidor demorou demais pra responder (${timeoutMs / 1000}s). Tente de novo.`
+      );
+      timeoutError.status = 'TIMEOUT';
+      logger.error(`Timeout em ${endpoint}`, timeoutError);
+      throw timeoutError;
+    }
+
     // Se for erro de CORS ou rede, dá mensagem mais clara
     if (error.message && error.message.includes('Failed to fetch')) {
       const corsError = new Error('Erro de conexão. Verifique se o backend Java está acessível.');
@@ -84,6 +101,8 @@ export async function javaRequest(endpoint, options = {}) {
 
     logger.error(`Erro Java ${endpoint}:`, error);
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
