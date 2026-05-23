@@ -59,6 +59,17 @@ export default function OrdersScreen() {
     return dB - dA;
   });
 
+  // Separa pedidos atuais (em curso) dos passados (entregues/cancelados).
+  // Como o cliente perdeu acesso à tela /historico, essa tela agora cobre
+  // os 2 papéis: comanda atual em cima, histórico embaixo.
+  const STATUS_FINAIS = new Set(['ENTREGUE', 'CANCELADO']);
+  const pedidosAtuais = pedidosOrdenados.filter(
+    (p) => !STATUS_FINAIS.has((p.status || '').toUpperCase())
+  );
+  const pedidosPassados = pedidosOrdenados.filter(
+    (p) => STATUS_FINAIS.has((p.status || '').toUpperCase())
+  );
+
   // Total da conta = soma dos pedidos não-cancelados (pra mostrar no botão "Pagar")
   const pedidosPagaveis = pedidos.filter(
     (p) => (p.status || '').toUpperCase() !== 'CANCELADO'
@@ -178,62 +189,80 @@ export default function OrdersScreen() {
             </View>
           </Card>
         ) : (
-          pedidosOrdenados.map((pedido) => {
-            const canEdit = canEditPedido(pedido, 5);
-            const timeRemaining = getTimeRemaining(pedido.dataCriacao, 5);
-            const total = calculateTotal(pedido);
-            const status = translateStatus(pedido.status);
+          [
+            { titulo: 'Comanda atual', lista: pedidosAtuais, isPast: false },
+            { titulo: 'Histórico',     lista: pedidosPassados, isPast: true },
+          ].map(
+            (secao) =>
+              secao.lista.length > 0 && (
+                <View key={secao.titulo}>
+                  <Text style={s.sectionLabel}>{secao.titulo}</Text>
+                  {secao.lista.map((pedido) => {
+                    const canEdit = !secao.isPast && canEditPedido(pedido, 5);
+                    const timeRemaining = canEdit
+                      ? getTimeRemaining(pedido.dataCriacao, 5)
+                      : null;
+                    const total = calculateTotal(pedido);
+                    const status = translateStatus(pedido.status);
 
-            return (
-              <View key={pedido.id} style={s.card}>
-                <View style={s.pedidoHeader}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={[s.pedidoId, { color: theme.text }]} numberOfLines={1}>
-                      Pedido #{String(pedido.id).slice(-4).toUpperCase()}
-                    </Text>
-                    <Text style={[s.pedidoDate, { color: theme.textSecondary }]}>
-                      {formatPedidoDate(pedido.dataCriacao)}
-                    </Text>
-                  </View>
-                  <View style={[s.statusBadge, getStatusStyle(pedido.status)]}>
-                    <Text
-                      style={[s.statusText, { color: getStatusStyle(pedido.status).color }]}
-                      numberOfLines={1}
-                    >
-                      {status}
-                    </Text>
-                  </View>
+                    return (
+                      <View
+                        key={pedido.id}
+                        style={[s.card, secao.isPast && s.cardPast]}
+                      >
+                        <View style={s.pedidoHeader}>
+                          <View style={{ flex: 1, paddingRight: 8 }}>
+                            <Text style={[s.pedidoId, { color: theme.text }]} numberOfLines={1}>
+                              Pedido #{String(pedido.id).slice(-4).toUpperCase()}
+                            </Text>
+                            <Text style={[s.pedidoDate, { color: theme.textSecondary }]}>
+                              {formatPedidoDate(pedido.dataCriacao)}
+                            </Text>
+                          </View>
+                          <View style={[s.statusBadge, getStatusStyle(pedido.status)]}>
+                            <Text
+                              style={[s.statusText, { color: getStatusStyle(pedido.status).color }]}
+                              numberOfLines={1}
+                            >
+                              {status}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text style={[s.itensText, { color: theme.text }]}>
+                          {formatItens(pedido.itens)}
+                        </Text>
+
+                        {pedido.observacao ? (
+                          <Text style={[s.observacao, { color: theme.textSecondary }]}>
+                            📝 {pedido.observacao}
+                          </Text>
+                        ) : null}
+
+                        <Text style={[s.totalText, { color: theme.primary }]}>
+                          Total: R$ {total.toFixed(2)}
+                        </Text>
+
+                        {canEdit && timeRemaining && (
+                          <Text style={s.timeText}>⏱️ {timeRemaining}</Text>
+                        )}
+
+                        {canEdit && pedido.status !== 'CANCELADO' && (
+                          <View style={s.actionsRow}>
+                            <TouchableOpacity style={s.editBtn} onPress={() => handleEditPedido(pedido)}>
+                              <Text style={s.btnText}>Editar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={s.cancelBtn} onPress={() => handleCancelPedido(pedido)}>
+                              <Text style={s.btnText}>Cancelar</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
                 </View>
-
-                <Text style={[s.itensText, { color: theme.text }]}>{formatItens(pedido.itens)}</Text>
-
-                {pedido.observacao ? (
-                  <Text style={[s.observacao, { color: theme.textSecondary }]}>
-                    📝 {pedido.observacao}
-                  </Text>
-                ) : null}
-
-                <Text style={[s.totalText, { color: theme.primary }]}>
-                  Total: R$ {total.toFixed(2)}
-                </Text>
-
-                {canEdit && timeRemaining && (
-                  <Text style={s.timeText}>⏱️ {timeRemaining}</Text>
-                )}
-
-                {canEdit && pedido.status !== 'CANCELADO' && (
-                  <View style={s.actionsRow}>
-                    <TouchableOpacity style={s.editBtn} onPress={() => handleEditPedido(pedido)}>
-                      <Text style={s.btnText}>Editar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={s.cancelBtn} onPress={() => handleCancelPedido(pedido)}>
-                      <Text style={s.btnText}>Cancelar</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            );
-          })
+              )
+          )
         )}
       </ScrollView>
 
@@ -325,6 +354,20 @@ function makeStyles(theme) {
       shadowOpacity: 0.08,
       shadowRadius: 4,
       elevation: 2,
+      marginBottom: 10,
+    },
+    cardPast: {
+      opacity: 0.75,
+    },
+    sectionLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginTop: 4,
+      marginBottom: 8,
+      paddingHorizontal: 4,
     },
     pedidoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
     pedidoId: { fontSize: 16, fontWeight: '700' },
