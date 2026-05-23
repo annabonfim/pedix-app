@@ -1,5 +1,5 @@
 // services/categoriaService.js
-import { api } from './api';
+import { javaApi } from './javaApi';
 import { logger } from '../utils/logger';
 
 function parseCategoria(item) {
@@ -14,7 +14,7 @@ function parseCategoria(item) {
 
 export async function fetchCategorias() {
   try {
-    const response = await api.get('/categorias-cardapio');
+    const response = await javaApi.get('/categorias-cardapio');
     const list = Array.isArray(response) ? response : (response._embedded?.categoriaCardapioList || []);
     return list.map(parseCategoria);
   } catch (error) {
@@ -25,7 +25,7 @@ export async function fetchCategorias() {
 
 export async function createCategoria(data) {
   try {
-    const response = await api.post('/categorias-cardapio', {
+    const response = await javaApi.post('/categorias-cardapio', {
       nome: data.nome,
       descricao: data.descricao || '',
       ativo: data.ativo !== false,
@@ -39,7 +39,7 @@ export async function createCategoria(data) {
 
 export async function updateCategoria(id, data) {
   try {
-    const response = await api.put(`/categorias-cardapio/${id}`, {
+    const response = await javaApi.put(`/categorias-cardapio/${id}`, {
       nome: data.nome,
       descricao: data.descricao || '',
       ativo: data.ativo !== false,
@@ -53,7 +53,7 @@ export async function updateCategoria(id, data) {
 
 export async function deleteCategoria(id) {
   try {
-    await api.delete(`/categorias-cardapio/${id}`);
+    await javaApi.delete(`/categorias-cardapio/${id}`);
   } catch (error) {
     logger.error(`Erro ao deletar categoria ${id}:`, error);
     throw error;

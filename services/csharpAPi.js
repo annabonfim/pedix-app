@@ -1,17 +1,14 @@
-// Cliente HTTP para a API principal (C#/.NET)
-// A API Java (port 8080) continua sendo usada para cardápio e pedidos
+// Cliente HTTP para a API .NET (ASP.NET Core).
+// Responsável por: auth (JWT), clientes, garçons, mesas, pedidos e pagamentos.
+// A API Java cuida do cardápio, categorias, avaliações, histórico e relatórios.
 
 import { getToken } from '../utils/storage';
 import { logger } from '../utils/logger';
 
-// ─── Config 
-// Emulador Android → 10.0.2.2 | Dispositivo físico → seu IP local | Produção → URL real
-const getCSharpBaseUrl = () => {
-  if (typeof __DEV__ !== 'undefined' && __DEV__) {
-    return 'http://10.0.2.2:5070/api'; // porta conforme README do projeto (localhost:5070/swagger)
-  }
-  return 'https://pedix-api.azurewebsites.net/api'; // deploy Azure (ajuste para a URL real de produção)
-};
+const CSHARP_API_URL =
+  'https://pedix-api-dotnet-bge2dyd6gudpapem.brazilsouth-01.azurewebsites.net/api';
+
+const getCSharpBaseUrl = () => CSHARP_API_URL;
 
 export const CSHARP_API_BASE_URL = getCSharpBaseUrl();
 

@@ -1,5 +1,5 @@
 // services/relatorioService.js
-import { api } from './api';
+import { javaApi } from './javaApi';
 import { logger } from '../utils/logger';
 
 function parseRelatorio(item) {
@@ -18,7 +18,7 @@ function parseRelatorio(item) {
 
 export async function fetchRelatorios() {
   try {
-    const response = await api.get('/relatorios');
+    const response = await javaApi.get('/relatorios');
     const list = Array.isArray(response) ? response : (response._embedded?.relatorioList || []);
     return list.map(parseRelatorio);
   } catch (error) {
@@ -29,7 +29,7 @@ export async function fetchRelatorios() {
 
 export async function fetchRelatorioById(id) {
   try {
-    const response = await api.get(`/relatorios/${id}`);
+    const response = await javaApi.get(`/relatorios/${id}`);
     return parseRelatorio(response);
   } catch (error) {
     logger.error(`Erro ao buscar relatorio ${id}:`, error);
@@ -47,7 +47,7 @@ export async function createRelatorio(data) {
       quantidade: data.quantidade,
       responsavel: data.responsavel,
     };
-    const response = await api.post('/relatorios', payload);
+    const response = await javaApi.post('/relatorios', payload);
     return parseRelatorio(response);
   } catch (error) {
     logger.error('Erro ao criar relatorio:', error);

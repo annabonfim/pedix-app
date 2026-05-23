@@ -1,5 +1,5 @@
 // services/avaliacaoService.js
-import { api } from './api';
+import { javaApi } from './javaApi';
 import { logger } from '../utils/logger';
 
 function parseAvaliacao(item) {
@@ -17,7 +17,7 @@ function parseAvaliacao(item) {
 
 export async function fetchAvaliacoes() {
   try {
-    const response = await api.get('/avaliacoes');
+    const response = await javaApi.get('/avaliacoes');
     const list = Array.isArray(response) ? response : (response._embedded?.avaliacaoList || []);
     return list.map(parseAvaliacao);
   } catch (error) {
@@ -35,7 +35,7 @@ export async function createAvaliacao(data) {
       nota: data.nota,
       comentario: data.comentario || '',
     };
-    const response = await api.post('/avaliacoes', payload);
+    const response = await javaApi.post('/avaliacoes', payload);
     return parseAvaliacao(response);
   } catch (error) {
     logger.error('Erro ao criar avaliacao:', error);
@@ -45,7 +45,7 @@ export async function createAvaliacao(data) {
 
 export async function deleteAvaliacao(id) {
   try {
-    await api.delete(`/avaliacoes/${id}`);
+    await javaApi.delete(`/avaliacoes/${id}`);
   } catch (error) {
     logger.error(`Erro ao deletar avaliacao ${id}:`, error);
     throw error;

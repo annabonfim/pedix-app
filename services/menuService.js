@@ -1,6 +1,6 @@
 // Serviço para buscar itens do cardápio
 
-import { api } from './api';
+import { javaApi } from './javaApi';
 import { logger } from '../utils/logger';
 
 // Busca todos os itens do cardápio
@@ -11,7 +11,7 @@ export async function fetchMenuItems(categoria = null) {
       ? `/item-cardapio?categoria=${encodeURIComponent(categoria)}`
       : '/item-cardapio';
     
-    const response = await api.get(endpoint);
+    const response = await javaApi.get(endpoint);
     
     // API retorna EntityModel ou array de EntityModel (Spring HATEOAS)
     let items = [];
@@ -84,7 +84,7 @@ export async function createMenuItem(itemData) {
       disponivel: itemData.available !== false,
       imagemUrl: itemData.image || null,
     };
-    const response = await api.post('/item-cardapio', payload);
+    const response = await javaApi.post('/item-cardapio', payload);
     return parseItemResponse(response);
   } catch (error) {
     logger.error('Erro ao criar item:', error);
@@ -103,7 +103,7 @@ export async function updateMenuItem(itemId, itemData) {
       disponivel: itemData.available !== false,
       imagemUrl: itemData.image || null,
     };
-    const response = await api.put(`/item-cardapio/${itemId}`, payload);
+    const response = await javaApi.put(`/item-cardapio/${itemId}`, payload);
     return parseItemResponse(response);
   } catch (error) {
     logger.error(`Erro ao atualizar item ${itemId}:`, error);
@@ -114,7 +114,7 @@ export async function updateMenuItem(itemId, itemData) {
 // Deleta um item do cardápio
 export async function deleteMenuItem(itemId) {
   try {
-    await api.delete(`/item-cardapio/${itemId}`);
+    await javaApi.delete(`/item-cardapio/${itemId}`);
   } catch (error) {
     logger.error(`Erro ao deletar item ${itemId}:`, error);
     throw error;
@@ -124,7 +124,7 @@ export async function deleteMenuItem(itemId) {
 // Busca um item específico por ID
 export async function fetchMenuItemById(itemId) {
   try {
-    const response = await api.get(`/item-cardapio/${itemId}`);
+    const response = await javaApi.get(`/item-cardapio/${itemId}`);
     
     // Extrai os dados do item da resposta
     const item = response.content || response;
