@@ -52,8 +52,11 @@ export default function OrdersScreen() {
     return acc;
   }, {});
 
+  // Esconde pedidos zumbis (sem itens) — vide nota em historico.jsx.
+  const pedidosValidos = pedidos.filter((p) => (p.itens || []).length > 0);
+
   // Ordena por mais recente
-  const pedidosOrdenados = [...pedidos].sort((a, b) => {
+  const pedidosOrdenados = [...pedidosValidos].sort((a, b) => {
     const dA = new Date(a.dataCriacao || 0);
     const dB = new Date(b.dataCriacao || 0);
     return dB - dA;

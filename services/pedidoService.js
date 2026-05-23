@@ -69,18 +69,31 @@ export async function createPedido(clienteId, items, observacao = '') {
       throw new Error('API não retornou id do pedido.');
     }
 
-    // 2) Adiciona cada item (serial pra evitar race condition no DB)
-    for (const item of items) {
-      const itemCardapioId = parseInt(item.id, 10);
-      const quantidade = item.quantity || 1;
-      const precoMomento = Number(item.price || 0);
-      const qsItem = new URLSearchParams({
-        pedidoId: pedido.id,
-        itemCardapioId: String(itemCardapioId),
-        quantidade: String(quantidade),
-        precoMomento: String(precoMomento),
-      }).toString();
-      await csharpApi.post(`/pedido-itens?${qsItem}`, null);
+    // 2) Adiciona cada item (serial pra evitar race condition no DB).
+    //    Se qualquer um falhar, tenta rollback: marca o pedido como CANCELADO
+    //    pra não deixar um esqueleto ABERTO + 0 itens poluindo o histórico
+    //    (a API não tem DELETE de pedido — soft delete via status).
+    try {
+      for (const item of items) {
+        const itemCardapioId = parseInt(item.id, 10);
+        const quantidade = item.quantity || 1;
+        const precoMomento = Number(item.price || 0);
+        const qsItem = new URLSearchParams({
+          pedidoId: pedido.id,
+          itemCardapioId: String(itemCardapioId),
+          quantidade: String(quantidade),
+          precoMomento: String(precoMomento),
+        }).toString();
+        await csharpApi.post(`/pedido-itens?${qsItem}`, null);
+      }
+    } catch (itemError) {
+      logger.warn('⚠️ Falha adicionando itens, fazendo rollback do pedido:', pedido.id);
+      try {
+        await csharpApi.put(`/pedidos/${pedido.id}/status`, { status: 'CANCELADO' });
+      } catch (rollbackError) {
+        logger.error('Rollback também falhou:', rollbackError);
+      }
+      throw itemError;
     }
 
     logger.log('✅ Pedido criado:', pedido.id);

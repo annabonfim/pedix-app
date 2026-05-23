@@ -1,22 +1,19 @@
 // app/historico.jsx
-// Tela de histórico de pedidos — útil pra gerente/garçom (gestão).
-//
-// Cliente vê os pedidos dele em /orders (mais focado), então essa tela ficou
-// dedicada ao ponto de vista do staff: lista todos os pedidos recentes
-// com status atual, mesa, item count e total. Útil pra auditoria visual
-// rápida de "o que rolou hoje".
-//
-// Antes essa tela puxava dados do `/historicos-pedidos` na API Java, mas o
-// pedidoId lá ficou órfão depois que a gente migrou pedidos pro .NET (Guid).
-// Reescrita pra consumir useAllPedidos do .NET, que é a fonte da verdade
-// atual.
+// Tela de histórico de pedidos — serve dois papéis:
+//   - Cliente: vê os pedidos DELE (atuais + finalizados + cancelados),
+//     todos com status e info de mesa. /orders mostra só os em aberto;
+//     aqui é o lugar de consultar o que já rolou.
+//   - Garçom/Gerente: vê TODOS os pedidos do sistema (auditoria visual
+//     de "o que rolou hoje" no restaurante).
+// O hook usado muda conforme o papel — useMeusPedidos pro cliente,
+// useAllPedidos pro staff.
 
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { useAllPedidos } from '../hooks/usePedidos';
+import { useAllPedidos, useMeusPedidos } from '../hooks/usePedidos';
 import { useMenuItems } from '../hooks/useMenuItems';
 import { useMesas } from '../hooks/useMesas';
 import { formatPedidoDate, translateStatus } from '../utils/time';
@@ -46,8 +43,14 @@ export default function HistoricoScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const { isAdmin, isGerente } = useAuth();
+  const isStaff = isAdmin || isGerente;
 
-  const { data: pedidos = [], isLoading, isFetching, refetch } = useAllPedidos();
+  // Cliente: useMeusPedidos (só os dele). Staff: useAllPedidos (todos do sistema).
+  // Os dois hooks têm shape compatível, então o resto da tela funciona igual.
+  const meus  = useMeusPedidos();
+  const todos = useAllPedidos();
+  const { data: pedidos = [], isLoading, isFetching, refetch } = isStaff ? todos : meus;
+
   const { data: menuItems = [] } = useMenuItems();
   const { data: mesas = [] } = useMesas();
 
@@ -63,35 +66,16 @@ export default function HistoricoScreen() {
     return acc;
   }, {});
 
+  // Esconde pedidos zumbis (sem itens). Acontecem quando o passo de criar
+  // pedido vazio passa mas o loop de adicionar itens falha (rede, cold start,
+  // app fechou). O createPedido tenta rollback agora, mas resta proteção aqui
+  // pros que ficaram de antes.
+  const pedidosValidos = pedidos.filter((p) => (p.itens || []).length > 0);
+
   // Pedidos ordenados por data desc (mais recente em cima)
-  const pedidosOrdenados = [...pedidos].sort(
+  const pedidosOrdenados = [...pedidosValidos].sort(
     (a, b) => new Date(b.dataPedido || 0) - new Date(a.dataPedido || 0)
   );
-
-  // Acesso restrito: cliente não deve cair aqui pelo menu, mas se acessar
-  // via deep link / URL, mostra mensagem clara em vez de dados de gestão.
-  if (!isAdmin && !isGerente) {
-    return (
-      <View style={[shared.screen, { backgroundColor: theme.background }]}>
-        <View style={[s.header, { backgroundColor: colors.navy }]}>
-          <View style={s.headerRow}>
-            <TouchableOpacity onPress={() => router.back()} style={s.iconBtn}>
-              <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={shared.headerTitle}>Histórico</Text>
-            <View style={s.iconBtn} />
-          </View>
-        </View>
-        <View style={s.center}>
-          <Ionicons name="lock-closed-outline" size={56} color={colors.textMuted} />
-          <Text style={[s.empty, { color: theme.text }]}>Acesso restrito</Text>
-          <Text style={[s.muted, { color: theme.textSecondary }]}>
-            Esta tela é exclusiva pra gerentes e garçons. Pra ver seus pedidos, use a aba "Pedidos".
-          </Text>
-        </View>
-      </View>
-    );
-  }
 
   const formatItensResumo = (itens) => {
     if (!itens?.length) return 'Sem itens';
@@ -132,7 +116,9 @@ export default function HistoricoScreen() {
           <Ionicons name="receipt-outline" size={56} color={colors.textMuted} />
           <Text style={[s.empty, { color: theme.text }]}>Nenhum pedido ainda</Text>
           <Text style={[s.muted, { color: theme.textSecondary }]}>
-            Os pedidos aparecem aqui assim que os clientes começarem a fazer.
+            {isStaff
+              ? 'Os pedidos aparecem aqui assim que os clientes começarem a fazer.'
+              : 'Quando você fizer um pedido, ele aparece aqui.'}
           </Text>
         </View>
       ) : (
