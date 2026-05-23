@@ -2,19 +2,23 @@
 // Tela exclusiva do GARÇOM/ADMIN
 // Mostra todos os pedidos de uma mesa específica e permite atualizar status
 
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { usePedidosByComanda, useAtualizarStatus } from '../../hooks/usePedidos';
+import { usePedidosByMesa, useAtualizarStatus } from '../../hooks/usePedidos';
+import { useMenuItems } from '../../hooks/useMenuItems';
 import { formatPedidoDate, translateStatus } from '../../utils/time';
-import { TuttiLoading } from '../../components/Tutti/TuttiLoading';
+import { colors } from '../../styles/theme';
 
 // ─── STATUS FLOW ─────────────────────────────────────────────────────────────
-// O garçom pode avançar o status nessa sequência
-const STATUS_FLOW = ['EM_PREPARO', 'PRONTO', 'ENTREGUE'];
+// O garçom/admin pode avançar o status nessa sequência:
+// ABERTO → EM_PREPARO → PRONTO → ENTREGUE
+const STATUS_FLOW = ['ABERTO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE'];
 
 const STATUS_CONFIG = {
+  ABERTO:     { color: '#F59E0B', bg: '#FEF3C7', label: 'Aberto',     icon: 'time-outline'              },
+  PENDENTE:   { color: '#F59E0B', bg: '#FEF3C7', label: 'Pendente',   icon: 'time-outline'              },
   EM_PREPARO: { color: '#17A2B8', bg: '#D1ECF1', label: 'Em Preparo', icon: 'flame-outline'             },
   PRONTO:     { color: '#28A745', bg: '#D4EDDA', label: 'Pronto',     icon: 'checkmark-circle-outline'  },
   ENTREGUE:   { color: '#6C757D', bg: '#E2E3E5', label: 'Entregue',   icon: 'bag-check-outline'         },
@@ -22,11 +26,14 @@ const STATUS_CONFIG = {
 };
 
 function getStatusConfig(status) {
-  return STATUS_CONFIG[(status || '').toUpperCase()] || STATUS_CONFIG.EM_PREPARO;
+  return STATUS_CONFIG[(status || '').toUpperCase()] || STATUS_CONFIG.ABERTO;
 }
 
 function getNextStatus(current) {
-  const idx = STATUS_FLOW.indexOf((current || '').toUpperCase());
+  const normalized = (current || '').toUpperCase();
+  // PENDENTE é alias de ABERTO — trata igual
+  const start = normalized === 'PENDENTE' ? 'ABERTO' : normalized;
+  const idx = STATUS_FLOW.indexOf(start);
   if (idx === -1 || idx >= STATUS_FLOW.length - 1) return null;
   return STATUS_FLOW[idx + 1];
 }
@@ -37,22 +44,27 @@ export default function AdminMesaPedidosScreen() {
   const { theme } = useTheme();
   const { mesaId, mesaNumero, mesaStatus } = useLocalSearchParams();
 
-  const comandaId = parseInt(mesaNumero, 10); // a comanda na Java API usa o número da mesa
-
   const {
     data: pedidos = [],
     isLoading,
     isFetching,
     refetch,
-  } = usePedidosByComanda(comandaId);
+  } = usePedidosByMesa(mesaId);
 
-  const atualizarStatusMutation = useAtualizarStatus(comandaId);
+  const atualizarStatusMutation = useAtualizarStatus();
+
+  // Lookup itemCardapioId → nome (a C# guarda só ID; nome vem do cardápio Java)
+  const { data: menuItems = [] } = useMenuItems();
+  const itemNameById = menuItems.reduce((acc, it) => {
+    acc[it.id] = it.name;
+    return acc;
+  }, {});
 
   const s = makeStyles(theme);
 
-  // Ordena: mais urgentes primeiro (PENDENTE e PREPARANDO no topo)
+  // Ordena: mais urgentes primeiro (ABERTO/PENDENTE no topo)
   const pedidosOrdenados = [...pedidos].sort((a, b) => {
-    const priority = { PENDENTE: 0, PREPARANDO: 1, PRONTO: 2, ENTREGUE: 3, CANCELADO: 4 };
+    const priority = { ABERTO: 0, PENDENTE: 0, EM_PREPARO: 1, PRONTO: 2, ENTREGUE: 3, CANCELADO: 4 };
     const pA = priority[(a.status || '').toUpperCase()] ?? 5;
     const pB = priority[(b.status || '').toUpperCase()] ?? 5;
     return pA - pB;
@@ -94,6 +106,7 @@ export default function AdminMesaPedidosScreen() {
         const nome =
           item.itemCardapio?.nome ||
           item.itemCardapio?.name ||
+          itemNameById[item.itemCardapioId] ||
           `Item ${item.itemCardapioId}`;
         return `${item.quantidade || 1}x ${nome}`;
       })
@@ -103,7 +116,7 @@ export default function AdminMesaPedidosScreen() {
   if (isLoading) {
     return (
       <View style={[s.container, s.center]}>
-        <TuttiLoading size="large" message="Carregando pedidos..." />
+        <ActivityIndicator size="large" color={colors.orange} />
       </View>
     );
   }
@@ -175,7 +188,9 @@ export default function AdminMesaPedidosScreen() {
                 {/* Cabeçalho do pedido */}
                 <View style={s.pedidoHeader}>
                   <View>
-                    <Text style={[s.pedidoId, { color: theme.text }]}>Pedido #{pedido.id}</Text>
+                    <Text style={[s.pedidoId, { color: theme.text }]} numberOfLines={1}>
+                      Pedido #{String(pedido.id).slice(-4).toUpperCase()}
+                    </Text>
                     <Text style={[s.pedidoDate, { color: theme.textSecondary }]}>
                       {formatPedidoDate(pedido.dataCriacao)}
                     </Text>

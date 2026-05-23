@@ -1,14 +1,15 @@
 // components/Tutti/TuttiFAB.jsx
 // Botão flutuante (canto inferior direito) que abre o chat do Tutti.
+// Estado vive em TuttiChatContext pra permitir abrir de fora (ex: tap em notif).
 
-import { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { TuttiChatModal } from './TuttiChatModal';
+import { useTuttiChat } from '../../context/TuttiChatContext';
 
 const ICON = require('../../assets/tutti-peeking.png');
 
 export function TuttiFAB({ bottomOffset = 88 }) {
-  const [modalVisible, setModalVisible] = useState(false);
+  const { isOpen, openChat, closeChat } = useTuttiChat();
 
   return (
     <>
@@ -19,7 +20,7 @@ export function TuttiFAB({ bottomOffset = 88 }) {
         <View style={s.fabShadow}>
           <TouchableOpacity
             style={s.fab}
-            onPress={() => setModalVisible(true)}
+            onPress={openChat}
             activeOpacity={0.85}
             accessibilityLabel="Abrir Tutti, assistente de IA"
             accessibilityRole="button"
@@ -30,10 +31,7 @@ export function TuttiFAB({ bottomOffset = 88 }) {
         </View>
       </View>
 
-      <TuttiChatModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-      />
+      <TuttiChatModal visible={isOpen} onClose={closeChat} />
     </>
   );
 }

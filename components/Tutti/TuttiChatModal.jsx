@@ -2,10 +2,7 @@
 // Bottom sheet com o chat do Tutti (~85% da altura da tela)
 
 import { useEffect, useRef, useCallback, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, Modal, TouchableOpacity, FlatList,
-  KeyboardAvoidingView, Platform, Image, Pressable,
-} from 'react-native';
+import {View, Text, StyleSheet, Modal, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, Image, Pressable,} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -83,50 +80,52 @@ export function TuttiChatModal({ visible, onClose }) {
         accessibilityLabel="Fechar chat"
       />
 
-      <View
-        style={[
-          s.sheet,
-          {
-            backgroundColor: theme.surface,
-            paddingBottom: bottomPad,
-          },
-        ]}
+      {/* Wrapper que empurra o sheet pra cima quando o teclado abre.
+          KAV precisa estar FORA do container absolute pra medir certo no iOS. */}
+      <KeyboardAvoidingView
+        style={s.kavWrapper}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        pointerEvents="box-none"
       >
-        {/* Drag handle visual (não funcional, só dica visual) */}
-        <View style={[s.dragHandle, { backgroundColor: colors.border }]} />
-
-        {/* Header */}
-        <View style={[s.header, { borderBottomColor: colors.border }]}>
-          <View style={s.headerAvatarWrap}>
-            <Image
-              source={HEADER_AVATAR}
-              style={s.headerAvatarImg}
-              resizeMode="contain"
-            />
-          </View>
-          <View style={s.headerText}>
-            <Text style={[s.headerTitle, { color: theme.text }]}>Tutti</Text>
-            <Text style={[s.headerSub, { color: theme.textSecondary }]}>
-              Seu assistente de IA pra recomendações
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={onClose}
-            style={s.closeBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="Fechar"
-            accessibilityRole="button"
-          >
-            <Ionicons name="close" size={24} color={theme.text} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Lista de mensagens + input */}
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        <View
+          style={[
+            s.sheet,
+            {
+              backgroundColor: theme.surface,
+              paddingBottom: bottomPad,
+            },
+          ]}
         >
+          {/* Drag handle visual (não funcional, só dica visual) */}
+          <View style={[s.dragHandle, { backgroundColor: colors.border }]} />
+
+          {/* Header */}
+          <View style={[s.header, { borderBottomColor: colors.border }]}>
+            <View style={s.headerAvatarWrap}>
+              <Image
+                source={HEADER_AVATAR}
+                style={s.headerAvatarImg}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={s.headerText}>
+              <Text style={[s.headerTitle, { color: theme.text }]}>Tutti</Text>
+              <Text style={[s.headerSub, { color: theme.textSecondary }]}>
+                Seu assistente de IA pra recomendações
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={onClose}
+              style={s.closeBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Fechar"
+              accessibilityRole="button"
+            >
+              <Ionicons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Lista de mensagens + input */}
           <FlatList
             ref={listRef}
             data={visibleMessages}
@@ -141,8 +140,8 @@ export function TuttiChatModal({ visible, onClose }) {
           />
 
           <TuttiInput onSend={sendMessage} disabled={loading} />
-        </KeyboardAvoidingView>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -156,11 +155,11 @@ const s = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
+  kavWrapper: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     height: '85%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

@@ -42,8 +42,9 @@ export default function MenuScreen() {
   // (a API Azure usa `categoriaId` numérico, não o nome do enum)
   const { data: items = [], isLoading, refetch, isFetching } = useMenuItems();
 
-  // Tutti proativo: notifica o cliente se ele ficar 20s parado no cardápio.
-  // Só roda quando a tela está focada e só pra clientes (não admin/gerente).
+  // Tutti proativo: notifica o cliente se ele passa 20s no cardápio
+  // sem adicionar nada ao carrinho. Scroll/busca não resetam — a regra é
+  // "ainda não decidiu", não "tá parado". Só clientes (não admin/gerente).
   const [isFocused, setIsFocused] = useState(false);
   useFocusEffect(
     useCallback(() => {
@@ -51,8 +52,9 @@ export default function MenuScreen() {
       return () => setIsFocused(false);
     }, [])
   );
-  const { registerInteraction } = useTuttiProactiveNotification({
+  useTuttiProactiveNotification({
     active: isFocused && !isAdmin && !isGerente,
+    cartEmpty: cartCount === 0,
   });
 
   const handleDelete = (item) => {
@@ -131,10 +133,10 @@ export default function MenuScreen() {
             placeholder="Buscar no cardápio..."
             placeholderTextColor={colors.textMuted}
             value={search}
-            onChangeText={(t) => { setSearch(t); registerInteraction(); }}
+            onChangeText={setSearch}
           />
           {search !== '' && (
-            <TouchableOpacity onPress={() => { setSearch(''); registerInteraction(); }}>
+            <TouchableOpacity onPress={() => setSearch('')}>
               <Ionicons name="close-circle" size={16} color={colors.textSub} />
             </TouchableOpacity>
           )}
@@ -148,7 +150,7 @@ export default function MenuScreen() {
             <TouchableOpacity
               key={cat.label}
               style={[s.chip, selectedCat.value === cat.value && s.chipActive]}
-              onPress={() => { setSelectedCat(cat); registerInteraction(); }}
+              onPress={() => setSelectedCat(cat)}
             >
               <Text style={[s.chipText, selectedCat.value === cat.value && s.chipTextActive]}>{cat.label}</Text>
             </TouchableOpacity>
@@ -162,10 +164,7 @@ export default function MenuScreen() {
           <TuttiLoading size="large" message="Carregando cardápio..." />
         </View>
       ) : (
-        <ScrollView
-          contentContainerStyle={s.list}
-          onScrollBeginDrag={registerInteraction}
-        >
+        <ScrollView contentContainerStyle={s.list}>
           {isGerente && (
             <TouchableOpacity
               style={s.newItemBtn}
@@ -186,10 +185,7 @@ export default function MenuScreen() {
               <TouchableOpacity
                 key={item.id}
                 style={[s.itemCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
-                onPress={() => {
-                  registerInteraction();
-                  router.push({ pathname: '/item', params: { id: item.id, name: item.name, price: String(item.price), description: item.description || '', image: item.image || '' } });
-                }}
+                onPress={() => router.push({ pathname: '/item', params: { id: item.id, name: item.name, price: String(item.price), description: item.description || '', image: item.image || '' } })}
                 activeOpacity={0.8}
               >
                 <View style={[s.itemEmoji, { backgroundColor: theme.background }]}>
@@ -235,7 +231,7 @@ export default function MenuScreen() {
                       )}
                       <TouchableOpacity
                         style={s.addBtn}
-                        onPress={() => { addItem(item); registerInteraction(); }}
+                        onPress={() => addItem(item)}
                       >
                         <Ionicons name="add" size={18} color="#FFFFFF" />
                       </TouchableOpacity>

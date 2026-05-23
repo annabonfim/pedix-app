@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
@@ -30,17 +30,22 @@ export default function IndexScreen() {
     );
   };
 
-  useEffect(() => {
-    AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER)
-      .then(v => {
-        if (v) {
-          setTableNumber(parseInt(v, 10));
-        } else if (!isAdmin) {
-          // Cliente sem mesa → redireciona pro scan
-          router.replace('/scan');
-        }
-      });
-  }, []);
+  // useFocusEffect (não useEffect): expo-router mantém telas montadas entre
+  // trocas de tab, então um useEffect com [] só rodaria na primeira abertura
+  // e não capturaria quando o cliente volta do Scan depois de escolher mesa.
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER)
+        .then(v => {
+          if (v) {
+            setTableNumber(parseInt(v, 10));
+          } else if (!isAdmin) {
+            // Cliente sem mesa → redireciona pro scan
+            router.replace('/scan');
+          }
+        });
+    }, [isAdmin])
+  );
   const firstName = (user?.nome || 'você').split(' ')[0];
 
   // Garçom: busca mesas pra mostrar resumo na home
@@ -85,7 +90,13 @@ export default function IndexScreen() {
             <Text style={s.greeting}>Bem-vindo de volta,</Text>
             <Text style={s.name}>{firstName} 👋</Text>
             <Text style={s.sub}>
-              {tableNumber ? `Mesa ${tableNumber} · Italiano` : 'Selecione sua mesa'}
+              {isGerente
+                ? 'Painel do gerente'
+                : isAdmin
+                ? 'Painel do garçom'
+                : tableNumber
+                ? `Mesa ${tableNumber} · Italiano`
+                : 'Selecione sua mesa'}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -223,7 +234,7 @@ const s = StyleSheet.create({
     marginTop: -20, paddingHorizontal: 16,
   },
   quickCard: {
-    width: '31%', borderRadius: 12, padding: 12, borderWidth: 1,
+    flex: 1, minWidth: 70, borderRadius: 12, padding: 10, borderWidth: 1,
     alignItems: 'center', gap: 6,
     shadowColor: '#1E3A5F', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,

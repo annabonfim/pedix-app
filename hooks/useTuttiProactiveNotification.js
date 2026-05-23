@@ -1,56 +1,62 @@
 // hooks/useTuttiProactiveNotification.js
-// Dispara uma notificação local do Tutti quando o usuário fica inativo
-// na tela do cardápio por mais de N segundos (default 20s).
-// Dispara uma única vez por sessão (enquanto o hook estiver montado).
+// Dispara uma notificação local do Tutti quando o cliente passa N segundos
+// na tela do cardápio sem adicionar nada ao carrinho.
+//
+// Semântica: "ainda não decidiu o que pedir, deixa o Tutti ajudar".
+// Scroll/busca/troca de categoria NÃO resetam o timer — só decidir
+// (adicionar item) ou sair da tela cancela.
+//
+// Dispara uma única vez por sessão do app. Se o cliente esvaziar o
+// carrinho depois, não re-arma — Tutti já apareceu, já se ofereceu.
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { notifyTuttiProactive } from '../utils/notifications';
+import { logger } from '../utils/logger';
 
 const DEFAULT_DELAY_MS = 20_000;
 
 export function useTuttiProactiveNotification({
   active = true,
+  cartEmpty = true,
   delayMs = DEFAULT_DELAY_MS,
 } = {}) {
-  // ID do setTimeout em execução (pra poder cancelar quando o usuário interage)
   const timerRef = useRef(null);
-  // Trava de "uma vez por sessão" — depois que disparar, não re-arma o timer
   const firedRef = useRef(false);
 
-  function clearTimer() {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }
+  useEffect(() => {
+    const clear = () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
 
-  const startTimer = useCallback(() => {
-    clearTimer();
-    if (firedRef.current) return;
+    logger.log('[TUTTI] effect run', { active, cartEmpty, fired: firedRef.current, delayMs });
+
+    // Cliente adicionou item: trava pra sempre nessa sessão, mesmo se esvaziar
+    // o carrinho depois — Tutti não precisa mais se oferecer.
+    if (!cartEmpty) {
+      logger.log('[TUTTI] cartEmpty=false → travando até fim da sessão');
+      clear();
+      firedRef.current = true;
+      return;
+    }
+
+    if (!active || firedRef.current) {
+      logger.log('[TUTTI] não vai armar — active:', active, 'fired:', firedRef.current);
+      clear();
+      return;
+    }
+
+    clear();
+    logger.log(`[TUTTI] armando timer de ${delayMs}ms`);
     timerRef.current = setTimeout(() => {
+      logger.log('[TUTTI] timer disparou → chamando notifyTuttiProactive');
       notifyTuttiProactive();
       firedRef.current = true;
       timerRef.current = null;
     }, delayMs);
-  }, [delayMs]);
 
-  // Quando o usuário faz qualquer interação no cardápio, reseta o timer
-  const registerInteraction = useCallback(() => {
-    if (!active || firedRef.current) return;
-    startTimer();
-  }, [active, startTimer]);
-
-  // Liga/desliga o timer conforme a tela está ativa (focada) ou não
-  useEffect(() => {
-    if (!active) {
-      clearTimer();
-      return;
-    }
-    if (!firedRef.current) {
-      startTimer();
-    }
-    return clearTimer;
-  }, [active, startTimer]);
-
-  return { registerInteraction };
+    return clear;
+  }, [active, cartEmpty, delayMs]);
 }

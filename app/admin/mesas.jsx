@@ -2,13 +2,15 @@
 // Tela exclusiva do GARÇOM/ADMIN
 // Mostra todas as mesas com status e acesso aos pedidos de cada uma
 
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useMesas } from '../../hooks/useMesas';
-import { TuttiLoading } from '../../components/Tutti/TuttiLoading';
+import { useAllPedidos } from '../../hooks/usePedidos';
+import { useMenuItems } from '../../hooks/useMenuItems';
+import { colors } from '../../styles/theme';
 
 // ─── STATUS DA MESA ──────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -27,13 +29,64 @@ export default function AdminMesasScreen() {
   const { user } = useAuth();
 
   const { data: mesasRaw = [], isLoading, isFetching, refetch } = useMesas();
+  const { data: pedidos = [] } = useAllPedidos();
+  const { data: menuItems = [] } = useMenuItems();
   const mesas = [...mesasRaw].sort((a, b) => (a.numero || 0) - (b.numero || 0));
 
   const s = makeStyles(theme);
 
-  // Conta por status para o resumo no topo
+  // Lookup itemCardapioId → nome (nomes vêm do cardápio Java)
+  const itemNameById = menuItems.reduce((acc, it) => {
+    acc[it.id] = it.name;
+    return acc;
+  }, {});
+
+  // Agrupa pedidos ativos por mesaId (ignora cancelado/entregue)
+  const pedidosByMesa = pedidos.reduce((acc, p) => {
+    const st = (p.status || '').toUpperCase();
+    if (st === 'CANCELADO' || st === 'ENTREGUE') return acc;
+    const mid = p.mesaId;
+    if (!mid) return acc;
+    if (!acc[mid]) acc[mid] = [];
+    acc[mid].push(p);
+    return acc;
+  }, {});
+
+  // Resumo da comanda de uma mesa: itens agregados + total
+  const resumoComanda = (mesaId) => {
+    const ps = pedidosByMesa[mesaId] || [];
+    const itensMap = new Map();
+    let total = 0;
+    for (const p of ps) {
+      for (const it of p.itens || []) {
+        const nome =
+          itemNameById[it.itemCardapioId] || `Item ${it.itemCardapioId}`;
+        const q = it.quantidade || 1;
+        const sub = parseFloat(it.subtotal || it.precoUnitario * q || 0);
+        const prev = itensMap.get(nome) || { nome, q: 0 };
+        prev.q += q;
+        itensMap.set(nome, prev);
+        total += sub;
+      }
+    }
+    return {
+      itens: Array.from(itensMap.values()),
+      total,
+      qtdPedidos: ps.length,
+    };
+  };
+
+  // Status efetivo: API às vezes não atualiza pra OCUPADA quando cria pedido,
+  // então se a mesa tem comanda ativa, força OCUPADA na visualização.
+  const getStatusEfetivo = (mesa) => {
+    const hasComanda = (pedidosByMesa[mesa.id] || []).length > 0;
+    if (hasComanda) return 'OCUPADA';
+    return (mesa.status || 'LIVRE').toUpperCase();
+  };
+
+  // Conta por status para o resumo no topo (usando status efetivo)
   const counts = mesas.reduce((acc, m) => {
-    const key = (m.status || '').toUpperCase();
+    const key = getStatusEfetivo(m);
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
@@ -41,7 +94,7 @@ export default function AdminMesasScreen() {
   if (isLoading) {
     return (
       <View style={[s.container, s.center]}>
-        <TuttiLoading size="large" message="Carregando mesas..." />
+        <ActivityIndicator size="large" color={colors.orange} />
       </View>
     );
   }
@@ -102,7 +155,8 @@ export default function AdminMesasScreen() {
         ) : (
           mesas.map((mesa) => {
             const cfg = getStatusConfig(mesa.status);
-            const isOcupada = (mesa.status || '').toUpperCase() === 'OCUPADA';
+            const comanda = resumoComanda(mesa.id);
+            const temPedidos = comanda.qtdPedidos > 0;
 
             return (
               <TouchableOpacity
@@ -120,35 +174,51 @@ export default function AdminMesasScreen() {
                 }
                 activeOpacity={0.75}
               >
-                {/* Número da mesa */}
-                <View style={[s.mesaNumContainer, { backgroundColor: cfg.bg }]}>
-                  <Text style={[s.mesaNum, { color: cfg.color }]}>{mesa.numero}</Text>
+                {/* Header do card: número + status + capacidade */}
+                <View style={s.mesaCardHeader}>
+                  <View style={[s.mesaNumContainer, { backgroundColor: cfg.bg }]}>
+                    <Text style={[s.mesaNum, { color: cfg.color }]}>{mesa.numero}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.mesaLabel, { color: theme.text }]}>Mesa {mesa.numero}</Text>
+                    {mesa.capacidade ? (
+                      <Text style={[s.mesaCap, { color: theme.textSecondary }]}>
+                        <Ionicons name="people-outline" size={11} /> {mesa.capacidade} lugares
+                        {mesa.localizacao ? ` · ${mesa.localizacao}` : ''}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View style={[s.statusBadge, { backgroundColor: cfg.bg }]}>
+                    <Ionicons name={cfg.icon} size={12} color={cfg.color} />
+                    <Text style={[s.statusText, { color: cfg.color }]} numberOfLines={1}> {cfg.label}</Text>
+                  </View>
                 </View>
 
-                {/* Info */}
-                <Text style={[s.mesaLabel, { color: theme.text }]}>Mesa {mesa.numero}</Text>
-                {mesa.capacidade ? (
-                  <Text style={[s.mesaCap, { color: theme.textSecondary }]}>
-                    <Ionicons name="people-outline" size={11} /> {mesa.capacidade} lugares
-                  </Text>
-                ) : null}
-                {mesa.localizacao ? (
-                  <Text style={[s.mesaLoc, { color: theme.textSecondary }]} numberOfLines={1}>
-                    {mesa.localizacao}
-                  </Text>
-                ) : null}
-
-                {/* Badge de status */}
-                <View style={[s.statusBadge, { backgroundColor: cfg.bg }]}>
-                  <Ionicons name={cfg.icon} size={12} color={cfg.color} />
-                  <Text style={[s.statusText, { color: cfg.color }]}> {cfg.label}</Text>
-                </View>
-
-                {/* Indicador de pedidos pendentes */}
-                {isOcupada && (
-                  <View style={s.pedidosIndicator}>
-                    <Ionicons name="receipt-outline" size={12} color={theme.primary} />
-                    <Text style={[s.pedidosText, { color: theme.primary }]}> Ver pedidos</Text>
+                {/* Resumo da comanda (só quando tem pedido) */}
+                {temPedidos && (
+                  <View style={[s.comandaBox, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                    <View style={s.comandaHeader}>
+                      <Ionicons name="receipt-outline" size={13} color={theme.textSecondary} />
+                      <Text style={[s.comandaTitle, { color: theme.textSecondary }]}>
+                        {' '}Comanda · {comanda.qtdPedidos} {comanda.qtdPedidos === 1 ? 'pedido' : 'pedidos'}
+                      </Text>
+                    </View>
+                    {comanda.itens.slice(0, 4).map((it) => (
+                      <Text key={it.nome} style={[s.comandaItem, { color: theme.text }]} numberOfLines={1}>
+                        • {it.q}x {it.nome}
+                      </Text>
+                    ))}
+                    {comanda.itens.length > 4 && (
+                      <Text style={[s.comandaMore, { color: theme.textSecondary }]}>
+                        + {comanda.itens.length - 4} {comanda.itens.length - 4 === 1 ? 'item' : 'itens'}
+                      </Text>
+                    )}
+                    <View style={[s.comandaTotalRow, { borderTopColor: theme.border }]}>
+                      <Text style={[s.comandaTotalLabel, { color: theme.text }]}>Total</Text>
+                      <Text style={[s.comandaTotalValue, { color: theme.primary }]}>
+                        R$ {comanda.total.toFixed(2).replace('.', ',')}
+                      </Text>
+                    </View>
                   </View>
                 )}
               </TouchableOpacity>
@@ -189,50 +259,73 @@ function makeStyles(theme) {
     summaryNumber: { fontSize: 22, fontWeight: '800' },
     summaryLabel: { fontSize: 11, color: theme.textSecondary, marginTop: 2 },
     grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
       padding: 12,
       gap: 10,
+      paddingBottom: 32,
     },
     mesaCard: {
-      width: '47%',
       borderRadius: 12,
       borderWidth: 1.5,
       padding: 12,
-      alignItems: 'center',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.06,
       shadowRadius: 4,
       elevation: 2,
     },
+    mesaCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
     mesaNumContainer: {
-      width: 52,
-      height: 52,
-      borderRadius: 26,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 8,
     },
-    mesaNum: { fontSize: 22, fontWeight: '800' },
-    mesaLabel: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
-    mesaCap: { fontSize: 12, marginBottom: 2 },
-    mesaLoc: { fontSize: 11, marginBottom: 6, maxWidth: '100%' },
+    mesaNum: { fontSize: 18, fontWeight: '800' },
+    mesaLabel: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+    mesaCap: { fontSize: 11 },
     statusBadge: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 8,
-      paddingVertical: 3,
+      paddingVertical: 4,
       borderRadius: 8,
-      marginTop: 4,
+      flexShrink: 0,
     },
     statusText: { fontSize: 11, fontWeight: '600' },
-    pedidosIndicator: {
+    comandaBox: {
+      marginTop: 10,
+      borderRadius: 8,
+      borderWidth: 1,
+      padding: 10,
+    },
+    comandaHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 6,
+      marginBottom: 6,
     },
-    pedidosText: { fontSize: 11, fontWeight: '600' },
+    comandaTitle: {
+      fontSize: 11,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    comandaItem: { fontSize: 13, marginBottom: 2 },
+    comandaMore: { fontSize: 11, fontStyle: 'italic', marginTop: 2 },
+    comandaTotalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+    },
+    comandaTotalLabel: { fontSize: 13, fontWeight: '600' },
+    comandaTotalValue: { fontSize: 16, fontWeight: '800' },
     loadingText: { marginTop: 12, fontSize: 15, color: theme.textSecondary },
     emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 8 },
     emptyText: { fontSize: 16, fontWeight: '600' },
