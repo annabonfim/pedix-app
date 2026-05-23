@@ -10,6 +10,7 @@ import { fetchPedidoById, atualizarPedido } from '../services/pedidoService';
 import { fetchMenuItems, fetchMenuItemById } from '../services/menuService';
 import { pedidoKeys } from '../hooks/usePedidos';
 import { canEditPedido } from '../utils/time';
+import { useAuth } from '../context/AuthContext';
 import { logger } from '../utils/logger';
 
 export default function EditOrderScreen() {
@@ -17,6 +18,7 @@ export default function EditOrderScreen() {
   const params = useLocalSearchParams();
   const { pedidoId, comandaId } = params;
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -233,15 +235,25 @@ export default function EditOrderScreen() {
           onPress: async () => {
             try {
               setSaving(true);
-              
+
+              if (!user?.id) {
+                throw new Error('Usuário não autenticado. Faça login novamente.');
+              }
+
+              // Backend espera Guid do cliente, não o número da mesa.
+              // O `comandaId` no params é só o número da mesa (legacy),
+              // usado pra invalidar cache.
+              // Também incluímos `price` em cada item — o pedidoService
+              // converte em precoMomento (sem isso vira 0).
               const items = itensPedido.map((item) => ({
                 id: item.id,
                 quantity: item.quantity,
+                price: item.price,
               }));
-              
-              await atualizarPedido(pedidoId, parseInt(comandaId, 10), items, observacao.trim());
 
-              queryClient.invalidateQueries({ queryKey: pedidoKeys.byComanda(parseInt(comandaId, 10)) });
+              await atualizarPedido(pedidoId, user.id, items, observacao.trim());
+
+              queryClient.invalidateQueries({ queryKey: pedidoKeys.byCliente(user.id) });
               queryClient.invalidateQueries({ queryKey: pedidoKeys.detail(pedidoId) });
 
               Alert.alert(

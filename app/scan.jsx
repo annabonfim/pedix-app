@@ -138,6 +138,11 @@ export default function ScanScreen() {
   // ─── CONFIRMAR MANUALMENTE ────────────────────────────────────────────────
   const handleConfirmar = async () => {
     if (!tableNumber) { Alert.alert('Campo obrigatório', 'Informe o número da mesa.'); return; }
+    const mesaNum = parseInt(tableNumber, 10);
+    if (Number.isNaN(mesaNum) || mesaNum < 1 || mesaNum > 10) {
+      Alert.alert('Mesa inválida', 'O número da mesa deve estar entre 1 e 10.');
+      return;
+    }
     if (!selectedRestaurante) { Alert.alert('Campo obrigatório', 'Selecione o restaurante.'); return; }
     if (!isRestauranteValido(selectedRestaurante)) {
       Alert.alert('Restaurante indisponível', 'Este restaurante não está disponível no momento.');
@@ -270,7 +275,7 @@ export default function ScanScreen() {
             ))}
           </View>
 
-          <Text style={[s.label, { color: theme.textSecondary, marginTop: 14 }]}>Número da mesa</Text>
+          <Text style={[s.label, { color: theme.textSecondary, marginTop: 14 }]}>Número da mesa (1 a 10)</Text>
           <View style={[s.inputRow, { backgroundColor: theme.background, borderColor: colors.border }]}>
             <Ionicons name="grid-outline" size={16} color={colors.textSub} style={{ paddingLeft: 12 }} />
             <TextInput

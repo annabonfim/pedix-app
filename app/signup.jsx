@@ -60,7 +60,16 @@ export default function SignupScreen() {
       await register(nome.trim(), email.trim(), senha.trim(), telefone.trim(), iso);
       router.replace('/scan');
     } catch (error) {
-      Alert.alert('Erro no cadastro', error.message || 'Não foi possível criar sua conta.');
+      // Cadastro foi OK mas auto-login falhou — conta existe, basta logar manual.
+      if (error?.stage === 'auto_login') {
+        Alert.alert(
+          'Conta criada! 🎉',
+          error.message,
+          [{ text: 'Ir pro login', onPress: () => router.replace('/login') }]
+        );
+      } else {
+        Alert.alert('Erro no cadastro', error.message || 'Não foi possível criar sua conta.');
+      }
     } finally {
       setLoading(false);
     }

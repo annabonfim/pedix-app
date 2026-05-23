@@ -122,14 +122,33 @@ export async function loginAsGerente(email, senha) {
 }
 
 // ─── CADASTRO DE CLIENTE ─────────────────────────────────────────────────────
+// Erros tipados pra UI saber distinguir "cadastro falhou" vs "cadastro OK
+// mas auto-login falhou" — no segundo caso a conta foi criada e a pessoa
+// pode tentar entrar manualmente.
+export class RegisterError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'RegisterError';
+    this.stage = 'register';
+  }
+}
+export class AutoLoginError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AutoLoginError';
+    this.stage = 'auto_login';
+  }
+}
+
 // /auth/register-cliente só cria a conta — não devolve JWT. Fazemos login
 // logo em seguida pra a pessoa já entrar autenticada sem digitar de novo.
 export async function registerCliente(nome, email, senha, telefone, dataNascimento) {
-  try {
-    if (!dataNascimento) {
-      throw new Error('Data de nascimento é obrigatória.');
-    }
+  if (!dataNascimento) {
+    throw new RegisterError('Data de nascimento é obrigatória.');
+  }
 
+  // Etapa 1: criar conta no backend.
+  try {
     await csharpApi.post(
       '/auth/register-cliente',
       {
@@ -141,12 +160,20 @@ export async function registerCliente(nome, email, senha, telefone, dataNascimen
       },
       { requiresAuth: false },
     );
+  } catch (error) {
+    logger.error('Erro ao criar conta:', error);
+    throw new RegisterError(error.message || 'Não foi possível criar sua conta.');
+  }
 
-    // cadastro OK → faz login automático pra obter JWT
+  // Etapa 2: auto-login. Conta já existe — se isso falhar, a pessoa só
+  // precisa ir manualmente na tela de login.
+  try {
     return await loginWithExpectedRole(email, senha, ROLES.CLIENTE);
   } catch (error) {
-    logger.error('Erro no cadastro de cliente:', error);
-    throw error;
+    logger.error('Cadastro OK, auto-login falhou:', error);
+    throw new AutoLoginError(
+      'Conta criada com sucesso! Faça login com seu e-mail e senha pra entrar.'
+    );
   }
 }
 
