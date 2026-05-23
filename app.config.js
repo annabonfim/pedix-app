@@ -23,7 +23,7 @@ module.exports = {
     splash: {
       image: './assets/splash-icon.png',
       resizeMode: 'contain',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#1E3A5F',
     },
     ios: {
       supportsTablet: true,
@@ -33,7 +33,7 @@ module.exports = {
       package: 'com.annabonfim.pedix',
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#1E3A5F',
       },
       edgeToEdgeEnabled: true,
     },
