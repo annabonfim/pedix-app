@@ -244,17 +244,16 @@ npm start
 - Escaneie o QR Code com **Expo Go** (iOS/Android), ou
 - `a` para emulador Android · `i` para simulador iOS · `w` para navegador
 
-> ⚠️ **A API Java está deployada no Azure** — cardápio, categorias, avaliações, histórico e relatórios funcionam direto.
-> ⚙️ **A API .NET roda localmente** durante a demo (deploy Azure em curso) — necessária pra login, mesas, pedidos e pagamento. Celular precisa estar no mesmo Wi-Fi do Mac que serve a API.
+> ⚠️ **As duas APIs estão deployadas no Azure** — você não precisa rodar nada localmente pra testar o app de ponta a ponta. Qualquer push em `main` redeploya automaticamente via GitHub Actions.
 
 ### URLs das APIs
 
 ```js
 // services/javaApi.js
-JAVA_API_URL  = 'https://pedix-api-aab0evapangybdh7.eastus-01.azurewebsites.net/api'  // Azure ✅
+JAVA_API_URL  = 'https://pedix-api-aab0evapangybdh7.eastus-01.azurewebsites.net/api'
 
 // services/csharpAPi.js
-CSHARP_API_URL = 'http://192.168.4.53:5070/api'  // LAN local (vai pra Azure após deploy)
+CSHARP_API_URL = 'https://pedix-dotnet-api-anna.azurewebsites.net/api'
 ```
 
 ### Dicas
@@ -272,7 +271,7 @@ CSHARP_API_URL = 'http://192.168.4.53:5070/api'  // LAN local (vai pra Azure ap�
 | API | Repositório | Status |
 |-----|-------------|--------|
 | 🟨 **Java** (cardápio, categorias, avaliações, histórico, relatórios) | [github.com/alanerochaa/pedix-api](https://github.com/alanerochaa/pedix-api) | ✅ Deployada no Azure |
-| 🟦 **.NET** (auth, clientes, garçons, mesas, pedidos, pagamentos) | [github.com/DudaAraujo14/C-](https://github.com/DudaAraujo14/C-) | 🟡 Roda local durante a demo (deploy em curso) |
+| 🟦 **.NET** (auth, clientes, garçons, mesas, pedidos, pagamentos) | [github.com/annabonfim/pedix-dotnet-api](https://github.com/annabonfim/pedix-dotnet-api) | ✅ Deployada no Azure (CI/CD via GitHub Actions) |
 
 ---
 

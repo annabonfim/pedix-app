@@ -5,10 +5,10 @@
 import { getToken } from '../utils/storage';
 import { logger } from '../utils/logger';
 
-// Pro vídeo de demo: aponta pro fork local rodando no Mac da Anna.
-// Quando a Duda terminar o deploy dela (ou a gente deployar nosso fork),
-// trocar pra URL Azure correspondente.
-const CSHARP_API_URL = 'http://192.168.4.53:5070/api';
+// Deploy Azure (App Service "pedix-dotnet-api-anna"), com CI/CD via GitHub
+// Actions a cada push em main do repo annabonfim/pedix-dotnet-api.
+const CSHARP_API_URL =
+  'https://pedix-dotnet-api-anna.azurewebsites.net/api';
 
 const getCSharpBaseUrl = () => CSHARP_API_URL;
 
