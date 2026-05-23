@@ -62,16 +62,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Garante que toda sessão nova começa sem mesa/restaurante herdado da anterior
-  const clearSessionContext = async () => {
-    await AsyncStorage.removeItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER);
-    await AsyncStorage.removeItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID);
-  };
-
   // role: 'CLIENTE' | 'ADMIN' | 'GERENTE'
 
+  // Mesa/restaurante são limpos APENAS no logout (e indiretamente no AsyncStorage
+  // quando o usuário escaneia uma mesa nova). Login/register NÃO limpam, senão
+  // toda re-autenticação derruba o contexto da sessão e o cliente cai de novo
+  // na tela de scan a cada reload do app.
   const login = useCallback(async (email, senha, role) => {
-    await clearSessionContext();
     let result;
     if (role === 'GERENTE') {
       result = await loginAsGerente(email, senha);
@@ -95,7 +92,6 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = useCallback(async (nome, email, senha, telefone, dataNascimento) => {
-    await clearSessionContext();
     const result = await registerCliente(nome, email, senha, telefone, dataNascimento);
     setUser(result.user);
     setToken(result.token);
