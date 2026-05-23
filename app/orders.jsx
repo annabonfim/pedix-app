@@ -59,22 +59,18 @@ export default function OrdersScreen() {
     return dB - dA;
   });
 
-  // Separa pedidos atuais (em curso) dos passados (entregues/cancelados).
-  // Como o cliente perdeu acesso à tela /historico, essa tela agora cobre
-  // os 2 papéis: comanda atual em cima, histórico embaixo.
-  const STATUS_FINAIS = new Set(['ENTREGUE', 'CANCELADO']);
+  // Essa tela mostra só a comanda em aberto. Pedidos finalizados/cancelados
+  // ficam em /historico (atalho na home).
+  // ABERTO / EM_PREPARO / PRONTO / ENTREGUE = ainda em curso (ENTREGUE
+  // significa "comida na mesa, conta em aberto" — cliente ainda paga).
+  // FINALIZADO / CANCELADO = terminais (saem desta tela).
+  const STATUS_TERMINAIS = new Set(['FINALIZADO', 'CANCELADO']);
   const pedidosAtuais = pedidosOrdenados.filter(
-    (p) => !STATUS_FINAIS.has((p.status || '').toUpperCase())
-  );
-  const pedidosPassados = pedidosOrdenados.filter(
-    (p) => STATUS_FINAIS.has((p.status || '').toUpperCase())
+    (p) => !STATUS_TERMINAIS.has((p.status || '').toUpperCase())
   );
 
-  // Total da conta = soma dos pedidos não-cancelados (pra mostrar no botão "Pagar")
-  const pedidosPagaveis = pedidos.filter(
-    (p) => (p.status || '').toUpperCase() !== 'CANCELADO'
-  );
-  const totalConta = pedidosPagaveis.reduce(
+  // Total da conta = soma dos pedidos ainda pagáveis (não terminais).
+  const totalConta = pedidosAtuais.reduce(
     (sum, p) => sum + (p.total ? parseFloat(p.total) : 0),
     0
   );
@@ -177,92 +173,81 @@ export default function OrdersScreen() {
           />
         }
       >
-        {pedidosOrdenados.length === 0 ? (
+        {pedidosAtuais.length === 0 ? (
           <Card>
             <View style={s.emptyContainer}>
               <Ionicons name="receipt-outline" size={64} color={theme.textMuted} />
-              <Text style={[s.emptyText, { color: theme.text }]}>Nenhum pedido encontrado</Text>
+              <Text style={[s.emptyText, { color: theme.text }]}>Nenhum pedido em aberto</Text>
               <Text style={[s.emptySubtext, { color: theme.textSecondary }]}>
-                Faça seu primeiro pedido no cardápio!
+                Faça um pedido no cardápio ou veja o histórico.
               </Text>
               <Button title="Ver Cardápio" onPress={() => router.push('/menu')} />
             </View>
           </Card>
         ) : (
-          [
-            { titulo: 'Comanda atual', lista: pedidosAtuais, isPast: false },
-            { titulo: 'Histórico',     lista: pedidosPassados, isPast: true },
-          ].map(
-            (secao) =>
-              secao.lista.length > 0 && (
-                <View key={secao.titulo}>
-                  <Text style={s.sectionLabel}>{secao.titulo}</Text>
-                  {secao.lista.map((pedido) => {
-                    const canEdit = !secao.isPast && canEditPedido(pedido, 5);
-                    const timeRemaining = canEdit
-                      ? getTimeRemaining(pedido.dataCriacao, 5)
-                      : null;
-                    const total = calculateTotal(pedido);
-                    const status = translateStatus(pedido.status);
+          <View>
+            <Text style={s.sectionLabel}>Comanda atual</Text>
+            {pedidosAtuais.map((pedido) => {
+              const canEdit = canEditPedido(pedido, 5);
+              const timeRemaining = canEdit
+                ? getTimeRemaining(pedido.dataCriacao, 5)
+                : null;
+              const total = calculateTotal(pedido);
+              const status = translateStatus(pedido.status);
 
-                    return (
-                      <View
-                        key={pedido.id}
-                        style={[s.card, secao.isPast && s.cardPast]}
+              return (
+                <View key={pedido.id} style={s.card}>
+                  <View style={s.pedidoHeader}>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={[s.pedidoId, { color: theme.text }]} numberOfLines={1}>
+                        Pedido #{String(pedido.id).slice(-4).toUpperCase()}
+                      </Text>
+                      <Text style={[s.pedidoDate, { color: theme.textSecondary }]}>
+                        {formatPedidoDate(pedido.dataCriacao)}
+                      </Text>
+                    </View>
+                    <View style={[s.statusBadge, getStatusStyle(pedido.status)]}>
+                      <Text
+                        style={[s.statusText, { color: getStatusStyle(pedido.status).color }]}
+                        numberOfLines={1}
                       >
-                        <View style={s.pedidoHeader}>
-                          <View style={{ flex: 1, paddingRight: 8 }}>
-                            <Text style={[s.pedidoId, { color: theme.text }]} numberOfLines={1}>
-                              Pedido #{String(pedido.id).slice(-4).toUpperCase()}
-                            </Text>
-                            <Text style={[s.pedidoDate, { color: theme.textSecondary }]}>
-                              {formatPedidoDate(pedido.dataCriacao)}
-                            </Text>
-                          </View>
-                          <View style={[s.statusBadge, getStatusStyle(pedido.status)]}>
-                            <Text
-                              style={[s.statusText, { color: getStatusStyle(pedido.status).color }]}
-                              numberOfLines={1}
-                            >
-                              {status}
-                            </Text>
-                          </View>
-                        </View>
+                        {status}
+                      </Text>
+                    </View>
+                  </View>
 
-                        <Text style={[s.itensText, { color: theme.text }]}>
-                          {formatItens(pedido.itens)}
-                        </Text>
+                  <Text style={[s.itensText, { color: theme.text }]}>
+                    {formatItens(pedido.itens)}
+                  </Text>
 
-                        {pedido.observacao ? (
-                          <Text style={[s.observacao, { color: theme.textSecondary }]}>
-                            📝 {pedido.observacao}
-                          </Text>
-                        ) : null}
+                  {pedido.observacao ? (
+                    <Text style={[s.observacao, { color: theme.textSecondary }]}>
+                      📝 {pedido.observacao}
+                    </Text>
+                  ) : null}
 
-                        <Text style={[s.totalText, { color: theme.primary }]}>
-                          Total: R$ {total.toFixed(2)}
-                        </Text>
+                  <Text style={[s.totalText, { color: theme.primary }]}>
+                    Total: R$ {total.toFixed(2)}
+                  </Text>
 
-                        {canEdit && timeRemaining && (
-                          <Text style={s.timeText}>⏱️ {timeRemaining}</Text>
-                        )}
+                  {canEdit && timeRemaining && (
+                    <Text style={s.timeText}>⏱️ {timeRemaining}</Text>
+                  )}
 
-                        {canEdit && pedido.status !== 'CANCELADO' && (
-                          <View style={s.actionsRow}>
-                            <TouchableOpacity style={s.editBtn} onPress={() => handleEditPedido(pedido)}>
-                              <Text style={s.btnText}>Editar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={s.cancelBtn} onPress={() => handleCancelPedido(pedido)}>
-                              <Text style={s.btnText}>Cancelar</Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-                    );
-                  })}
+                  {canEdit && pedido.status !== 'CANCELADO' && (
+                    <View style={s.actionsRow}>
+                      <TouchableOpacity style={s.editBtn} onPress={() => handleEditPedido(pedido)}>
+                        <Text style={s.btnText}>Editar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={s.cancelBtn} onPress={() => handleCancelPedido(pedido)}>
+                        <Text style={s.btnText}>Cancelar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
-              )
-          )
+              );
+            })}
+          </View>
         )}
       </ScrollView>
 
@@ -289,10 +274,12 @@ export default function OrdersScreen() {
 function getStatusStyle(status) {
   const map = {
     PENDENTE:   { backgroundColor: '#FFF3CD', borderColor: '#FFC107', color: '#856404' },
+    ABERTO:     { backgroundColor: '#FFF3CD', borderColor: '#FFC107', color: '#856404' },
     PREPARANDO: { backgroundColor: '#D1ECF1', borderColor: '#17A2B8', color: '#0C5460' },
     EM_PREPARO: { backgroundColor: '#D1ECF1', borderColor: '#17A2B8', color: '#0C5460' },
     PRONTO:     { backgroundColor: '#D4EDDA', borderColor: '#28A745', color: '#155724' },
     ENTREGUE:   { backgroundColor: '#E2E3E5', borderColor: '#6C757D', color: '#383D41' },
+    FINALIZADO: { backgroundColor: '#D1E7DD', borderColor: '#198754', color: '#0F5132' },
     CANCELADO:  { backgroundColor: '#F8D7DA', borderColor: '#DC3545', color: '#721C24' },
   };
   return map[status] || map.PENDENTE;
@@ -355,9 +342,6 @@ function makeStyles(theme) {
       shadowRadius: 4,
       elevation: 2,
       marginBottom: 10,
-    },
-    cardPast: {
-      opacity: 0.75,
     },
     sectionLabel: {
       fontSize: 11,

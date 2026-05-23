@@ -41,10 +41,12 @@ export default function AdminMesasScreen() {
     return acc;
   }, {});
 
-  // Agrupa pedidos ativos por mesaId (ignora cancelado/entregue)
+  // Agrupa pedidos ativos por mesaId (ignora terminais e entregues — o
+  // garçom não tem mais ação na cozinha pra esses).
+  const SEM_ACAO = new Set(['CANCELADO', 'ENTREGUE', 'FINALIZADO']);
   const pedidosByMesa = pedidos.reduce((acc, p) => {
     const st = (p.status || '').toUpperCase();
-    if (st === 'CANCELADO' || st === 'ENTREGUE') return acc;
+    if (SEM_ACAO.has(st)) return acc;
     const mid = p.mesaId;
     if (!mid) return acc;
     if (!acc[mid]) acc[mid] = [];

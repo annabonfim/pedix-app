@@ -104,8 +104,8 @@ export default function PagamentoScreen() {
         onSuccess: () => {
           Alert.alert(
             '✅ Pagamento aprovado!',
-            `R$ ${totalFmt} via ${metodo}.\nObrigada pela visita! 🍝`,
-            [{ text: 'OK', onPress: () => router.replace('/') }]
+            `R$ ${totalFmt} via ${metodo}.\nObrigada pela visita! 🍝\n\nQue tal avaliar sua experiência?`,
+            [{ text: 'Avaliar', onPress: () => router.replace('/avaliacao-form') }]
           );
         },
         onError: (err) => {

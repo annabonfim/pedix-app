@@ -14,6 +14,8 @@ import { colors } from '../../styles/theme';
 // ─── STATUS FLOW ─────────────────────────────────────────────────────────────
 // O garçom/admin pode avançar o status nessa sequência:
 // ABERTO → EM_PREPARO → PRONTO → ENTREGUE
+// FINALIZADO vem do fluxo de pagamento (cliente paga → backend marca), não
+// é uma transição manual do garçom.
 const STATUS_FLOW = ['ABERTO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE'];
 
 const STATUS_CONFIG = {
@@ -22,6 +24,7 @@ const STATUS_CONFIG = {
   EM_PREPARO: { color: '#17A2B8', bg: '#D1ECF1', label: 'Em Preparo', icon: 'flame-outline'             },
   PRONTO:     { color: '#28A745', bg: '#D4EDDA', label: 'Pronto',     icon: 'checkmark-circle-outline'  },
   ENTREGUE:   { color: '#6C757D', bg: '#E2E3E5', label: 'Entregue',   icon: 'bag-check-outline'         },
+  FINALIZADO: { color: '#198754', bg: '#D1E7DD', label: 'Finalizado', icon: 'cash-outline'              },
   CANCELADO:  { color: '#DC3545', bg: '#F8D7DA', label: 'Cancelado',  icon: 'close-circle-outline'      },
 };
 
@@ -64,7 +67,7 @@ export default function AdminMesaPedidosScreen() {
 
   // Ordena: mais urgentes primeiro (ABERTO/PENDENTE no topo)
   const pedidosOrdenados = [...pedidos].sort((a, b) => {
-    const priority = { ABERTO: 0, PENDENTE: 0, EM_PREPARO: 1, PRONTO: 2, ENTREGUE: 3, CANCELADO: 4 };
+    const priority = { ABERTO: 0, PENDENTE: 0, EM_PREPARO: 1, PRONTO: 2, ENTREGUE: 3, FINALIZADO: 4, CANCELADO: 5 };
     const pA = priority[(a.status || '').toUpperCase()] ?? 5;
     const pB = priority[(b.status || '').toUpperCase()] ?? 5;
     return pA - pB;
@@ -180,8 +183,10 @@ export default function AdminMesaPedidosScreen() {
             const cfg = getStatusConfig(pedido.status);
             const proximo = getNextStatus(pedido.status);
             const proxCfg = proximo ? getStatusConfig(proximo) : null;
-            const isCancelado = (pedido.status || '').toUpperCase() === 'CANCELADO';
-            const isEntregue = (pedido.status || '').toUpperCase() === 'ENTREGUE';
+            const statusUpper = (pedido.status || '').toUpperCase();
+            const isCancelado = statusUpper === 'CANCELADO';
+            const isEntregue = statusUpper === 'ENTREGUE';
+            const isFinalizado = statusUpper === 'FINALIZADO';
 
             return (
               <View key={pedido.id} style={[s.pedidoCard, { backgroundColor: theme.card }]}>
@@ -219,7 +224,7 @@ export default function AdminMesaPedidosScreen() {
                 ) : null}
 
                 {/* Ação principal: avançar status */}
-                {!isCancelado && !isEntregue && proximo && proxCfg && (
+                {!isCancelado && !isEntregue && !isFinalizado && proximo && proxCfg && (
                   <TouchableOpacity
                     style={[
                       s.actionBtn,
@@ -234,11 +239,19 @@ export default function AdminMesaPedidosScreen() {
                   </TouchableOpacity>
                 )}
 
-                {/* Entregue — estado final */}
+                {/* Entregue — aguardando pagamento do cliente */}
                 {isEntregue && (
                   <View style={s.finalState}>
                     <Ionicons name="checkmark-done-circle-outline" size={16} color="#6C757D" />
-                    <Text style={[s.finalText, { color: theme.textSecondary }]}> Pedido entregue</Text>
+                    <Text style={[s.finalText, { color: theme.textSecondary }]}> Entregue — aguardando pagamento</Text>
+                  </View>
+                )}
+
+                {/* Finalizado — cliente pagou, conta fechada */}
+                {isFinalizado && (
+                  <View style={s.finalState}>
+                    <Ionicons name="cash-outline" size={16} color="#198754" />
+                    <Text style={{ fontSize: 13, color: '#198754' }}> Conta paga · finalizado</Text>
                   </View>
                 )}
 

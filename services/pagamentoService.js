@@ -22,17 +22,34 @@ async function getPedidoIdParaPagar(clienteId) {
   return abertos[0].id;
 }
 
-// Cria pagamento. Usa query string (estilo que a Duda já usa na API).
+// Cria pagamento. POST /api/pagamentos espera CriarPagamentoDto no BODY
+// (PedidoId Guid, Valor decimal, MetodoPagamento string).
 export async function criarPagamento({ valor, metodoPagamento, clienteId, pedidoId }) {
   const finalPedidoId = pedidoId || (await getPedidoIdParaPagar(clienteId));
 
-  const qs = new URLSearchParams({
+  return csharpApi.post('/pagamentos', {
     pedidoId: finalPedidoId,
-    valor: String(valor),
+    valor: Number(valor),
     metodoPagamento,
-  }).toString();
+  });
+}
 
-  return csharpApi.post(`/pagamentos?${qs}`, null);
+// Busca pagamentos de um pedido específico. Pode retornar 0 (sem pagamento),
+// 1 (caso normal) ou mais (tentativas anteriores). Usado pra enriquecer o
+// histórico de pedidos com método de pagamento (PIX/CREDITO/etc).
+export async function fetchPagamentoByPedido(pedidoId) {
+  if (!pedidoId) return null;
+  try {
+    const list = await csharpApi.get(`/pagamentos/pedido/${pedidoId}`);
+    if (!Array.isArray(list) || list.length === 0) return null;
+    // Pega o APROVADO mais recente; se não tem aprovado, o último que veio.
+    const aprovado = list.find((p) => (p.status || '').toUpperCase() === 'APROVADO');
+    return aprovado || list[list.length - 1];
+  } catch (error) {
+    if (error.status === 404) return null;
+    logger.warn(`[PAGAMENTO] Erro buscando pagamento do pedido ${pedidoId}:`, error);
+    return null;
+  }
 }
 
 // Aprova pagamento (auto, ~2-3s após criar).

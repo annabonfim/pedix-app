@@ -31,8 +31,9 @@ export function canEditPedido(pedido, maxMinutes = 5) {
   const minutesSince = getMinutesSince(pedido.dataCriacao);
   if (minutesSince === null) return false;
 
-  // Não pode editar se já foi cancelado ou entregue
-  if (pedido.status === 'CANCELADO' || pedido.status === 'ENTREGUE') {
+  // Não pode editar se já foi cancelado, entregue ou finalizado (pago)
+  const st = (pedido.status || '').toUpperCase();
+  if (st === 'CANCELADO' || st === 'ENTREGUE' || st === 'FINALIZADO') {
     return false;
   }
 
@@ -86,6 +87,7 @@ export function translateStatus(status) {
     'EM_PREPARO': 'Em Preparo',
     'PRONTO': 'Pronto',
     'ENTREGUE': 'Entregue',
+    'FINALIZADO': 'Finalizado',
     'CANCELADO': 'Cancelado',
   };
 
