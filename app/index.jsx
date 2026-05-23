@@ -6,8 +6,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMesas } from '../hooks/useMesas';
+import { useMenuItems } from '../hooks/useMenuItems';
 import { colors, shared, typography } from '../styles/theme';
 import { APP_CONFIG } from '../config/constants';
+
+// Escolhe a sugestão do dia de forma determinística (varia a cada dia,
+// mas fica fixa pra todos os clientes no mesmo dia). Usa o índice do dia
+// do ano módulo o tamanho do cardápio.
+function pickSuggestionForToday(items) {
+  if (!items?.length) return null;
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((now - start) / 86_400_000);
+  return items[dayOfYear % items.length];
+}
 
 const MASCOT = require('../assets/pedix-mascot.png');
 
@@ -53,6 +65,11 @@ export default function IndexScreen() {
   const mesasLivres = mesas.filter(m => (m.status || '').toUpperCase() === 'LIVRE').length;
   const mesasOcupadas = mesas.filter(m => (m.status || '').toUpperCase() === 'OCUPADA').length;
 
+  // Sugestão do dia: pega 1 item disponível do cardápio, determinístico por dia
+  const { data: menuItems = [] } = useMenuItems();
+  const itensDisponiveis = menuItems.filter((it) => it.available);
+  const sugestaoDoDia = pickSuggestionForToday(itensDisponiveis);
+
   const quickItems = isGerente
     ? [
         { icon: 'grid-outline',         label: 'Mesas',      route: '/admin/mesas' },
@@ -74,7 +91,6 @@ export default function IndexScreen() {
         { icon: 'restaurant-outline', label: 'Cardápio',   route: '/menu' },
         { icon: 'receipt-outline',    label: 'Pedidos',    route: '/orders' },
         { icon: 'star-outline',       label: 'Avaliações', route: '/avaliacoes' },
-        { icon: 'time-outline',       label: 'Histórico',  route: '/historico' },
       ]
     : [
         { icon: 'qr-code-outline', label: 'Selecionar mesa', route: '/scan' },
@@ -184,30 +200,44 @@ export default function IndexScreen() {
           </>
         )}
 
-        {/* Sugestão do dia — só aparece após selecionar mesa */}
-        {(isAdmin || tableNumber) && (
+        {/* Sugestão do dia — só aparece após selecionar mesa e se tiver cardápio carregado */}
+        {(isAdmin || tableNumber) && sugestaoDoDia && (
           <>
             <Text style={[typography.sectionTitle, { color: theme.textSecondary, marginTop: 8, marginBottom: 8 }]}>
               Sugestão do dia
             </Text>
             <TouchableOpacity
               style={[shared.card, s.suggestCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
-              onPress={() => router.push('/menu')}
+              onPress={() => router.push({
+                pathname: '/item',
+                params: {
+                  id: sugestaoDoDia.id,
+                  name: sugestaoDoDia.name,
+                  price: String(sugestaoDoDia.price),
+                  description: sugestaoDoDia.description || '',
+                  image: sugestaoDoDia.image || '',
+                },
+              })}
               activeOpacity={0.8}
             >
               <View style={s.suggestEmoji}>
-                <Text style={{ fontSize: 28 }}>🍝</Text>
+                <Text style={{ fontSize: 28 }}>
+                  {typeof sugestaoDoDia.image === 'string' && sugestaoDoDia.image.length <= 4
+                    ? sugestaoDoDia.image
+                    : '🍽️'}
+                </Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[s.suggestName, { color: theme.text }]}>Spaghetti Carbonara</Text>
-                <Text style={[s.suggestDesc, { color: theme.textSecondary }]}>
-                  Massa italiana com molho cremoso, bacon e parmesão
+                <Text style={[s.suggestName, { color: theme.text }]} numberOfLines={1}>
+                  {sugestaoDoDia.name}
                 </Text>
-                <Text style={[typography.price, { marginTop: 6 }]}>R$ 52,00</Text>
+                <Text style={[s.suggestDesc, { color: theme.textSecondary }]} numberOfLines={2}>
+                  {sugestaoDoDia.description || 'Experimente esta sugestão do chef'}
+                </Text>
+                <Text style={[typography.price, { marginTop: 6 }]}>
+                  R$ {Number(sugestaoDoDia.price || 0).toFixed(2).replace('.', ',')}
+                </Text>
               </View>
-              <TouchableOpacity style={s.addBtn} onPress={() => router.push('/menu')}>
-                <Ionicons name="add" size={18} color="#FFFFFF" />
-              </TouchableOpacity>
             </TouchableOpacity>
           </>
         )}
