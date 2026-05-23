@@ -5,8 +5,10 @@
 import { getToken } from '../utils/storage';
 import { logger } from '../utils/logger';
 
-const CSHARP_API_URL =
-  'https://pedix-api-dotnet-bge2dyd6gudpapem.brazilsouth-01.azurewebsites.net/api';
+// Pro vídeo de demo: aponta pro fork local rodando no Mac da Anna.
+// Quando a Duda terminar o deploy dela (ou a gente deployar nosso fork),
+// trocar pra URL Azure correspondente.
+const CSHARP_API_URL = 'http://192.168.4.53:5070/api';
 
 const getCSharpBaseUrl = () => CSHARP_API_URL;
 
