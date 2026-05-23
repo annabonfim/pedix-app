@@ -20,17 +20,44 @@ export default function SignupScreen() {
   const [email, setEmail]       = useState('');
   const [senha, setSenha]       = useState('');
   const [telefone, setTelefone] = useState('');
+  const [nascimento, setNascimento] = useState(''); // formato DD/MM/AAAA
   const [loading, setLoading]   = useState(false);
 
+  // Aplica máscara DD/MM/AAAA conforme digita
+  const handleNascimentoChange = (raw) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 8);
+    let out = digits;
+    if (digits.length > 4) out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    else if (digits.length > 2) out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    setNascimento(out);
+  };
+
+  // Converte DD/MM/AAAA → ISO "AAAA-MM-DDT00:00:00", ou null se inválido
+  const parseNascimentoToIso = (str) => {
+    const m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return null;
+    const [_, dd, mm, yyyy] = m;
+    const d = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
+    if (isNaN(d.getTime())) return null;
+    // sanity: ano entre 1900 e hoje
+    const year = parseInt(yyyy, 10);
+    if (year < 1900 || year > new Date().getFullYear()) return null;
+    return `${yyyy}-${mm}-${dd}T00:00:00`;
+  };
+
   const handleSignup = async () => {
-    if (!nome.trim())     { Alert.alert('Campo obrigatório', 'Informe seu nome.'); return; }
-    if (!email.trim())    { Alert.alert('Campo obrigatório', 'Informe seu e-mail.'); return; }
-    if (!senha.trim())    { Alert.alert('Campo obrigatório', 'Informe uma senha.'); return; }
-    if (!telefone.trim()) { Alert.alert('Campo obrigatório', 'Informe seu telefone.'); return; }
+    if (!nome.trim())       { Alert.alert('Campo obrigatório', 'Informe seu nome.'); return; }
+    if (!email.trim())      { Alert.alert('Campo obrigatório', 'Informe seu e-mail.'); return; }
+    if (!senha.trim())      { Alert.alert('Campo obrigatório', 'Informe uma senha.'); return; }
+    if (!telefone.trim())   { Alert.alert('Campo obrigatório', 'Informe seu telefone.'); return; }
+    if (!nascimento.trim()) { Alert.alert('Campo obrigatório', 'Informe sua data de nascimento.'); return; }
+
+    const iso = parseNascimentoToIso(nascimento);
+    if (!iso) { Alert.alert('Data inválida', 'Use o formato DD/MM/AAAA.'); return; }
 
     setLoading(true);
     try {
-      await register(nome.trim(), email.trim(), senha.trim(), telefone.trim());
+      await register(nome.trim(), email.trim(), senha.trim(), telefone.trim(), iso);
       router.replace('/scan');
     } catch (error) {
       Alert.alert('Erro no cadastro', error.message || 'Não foi possível criar sua conta.');
@@ -103,7 +130,7 @@ export default function SignupScreen() {
             </View>
           </View>
 
-          <View style={[s.fieldGap, { marginBottom: 24 }]}>
+          <View style={s.fieldGap}>
             <Text style={[s.label, { color: theme.textSecondary }]}>Telefone</Text>
             <View style={[s.inputRow, { backgroundColor: theme.inputBackground, borderColor: colors.border }]}>
               <Ionicons name="call-outline" size={16} color={colors.textSub} style={s.inputIcon} />
@@ -113,6 +140,22 @@ export default function SignupScreen() {
                 placeholderTextColor={colors.textMuted}
                 value={telefone} onChangeText={setTelefone}
                 keyboardType="phone-pad"
+                autoCorrect={false}
+              />
+            </View>
+          </View>
+
+          <View style={[s.fieldGap, { marginBottom: 24 }]}>
+            <Text style={[s.label, { color: theme.textSecondary }]}>Data de nascimento</Text>
+            <View style={[s.inputRow, { backgroundColor: theme.inputBackground, borderColor: colors.border }]}>
+              <Ionicons name="calendar-outline" size={16} color={colors.textSub} style={s.inputIcon} />
+              <TextInput
+                style={[s.input, { color: theme.text }]}
+                placeholder="DD/MM/AAAA"
+                placeholderTextColor={colors.textMuted}
+                value={nascimento} onChangeText={handleNascimentoChange}
+                keyboardType="number-pad"
+                maxLength={10}
                 autoCorrect={false}
               />
             </View>

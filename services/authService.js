@@ -1,61 +1,100 @@
 // services/authService.js
-// Autenticação MOCKADA (API C# não disponível durante Sprint 3).
+// Auth real integrado com a API .NET (Atendimentos.Api).
+// Mantém a mesma interface do antigo serviço mockado pra não quebrar
+// AuthContext/login.jsx/signup.jsx.
 //
-// ESTRATÉGIA: Usa dados mockados em services/mockData.js para validar
-// credenciais. Mantém a mesma interface do serviço real — quando a API C#
-// estiver disponível, basta trocar os imports de volta.
+// MAPPING DE ROLES:
+//   App.ROLES.CLIENTE → API "Cliente"
+//   App.ROLES.ADMIN   → API "Garcom"   (rótulo "Garçom" no app)
+//   App.ROLES.GERENTE → API "Admin"    (admin do sistema, precisa AdminKey)
 //
-//   ADMIN  (Garçom)  → lista mockada MOCK_GARCONS  → Nome + Matrícula
-//   CLIENTE          → lista mockada MOCK_CLIENTES → Nome + CPF
-//
-// O "token" é gerado localmente (btoa do id + role + timestamp) e salvo
-// em AsyncStorage junto com o objeto do usuário.
+// Login: único endpoint /api/auth/login. O role vem dentro do JWT como claim.
+// Conferimos a role do token contra a role escolhida na tela e bloqueamos
+// se não bater (ex: cliente tentando logar na aba garçom).
 
-import { saveToken, removeToken, getToken, saveUser, getSavedUser } from '../utils/storage';
+import { csharpApi } from './csharpAPi';
+import { userFromJwt, isJwtExpired } from '../utils/jwt';
+import {
+  saveToken, removeToken, getToken, saveUser, getSavedUser,
+} from '../utils/storage';
 import { logger } from '../utils/logger';
-import { MOCK_CLIENTES, MOCK_GARCONS, MOCK_GERENTES, mockDelay } from './mockData';
 
-// Roles
+// ─── ROLES (app) ──────────────────────────────────────────────────────────────
 export const ROLES = {
   CLIENTE: 'CLIENTE',
-  ADMIN: 'ADMIN', // Garçom no sistema C#
-  GERENTE: 'GERENTE', // Gerente — acesso completo + CRUD do cardápio
+  ADMIN: 'ADMIN',
+  GERENTE: 'GERENTE',
 };
 
-// Gera um token local a partir do ID e role do usuário
-function generateLocalToken(userId, role) {
-  const timestamp = Date.now();
-  return btoa(`${userId}:${role}:${timestamp}`);
+// App e API usam vocabulários diferentes pra mesma coisa:
+//   App.ADMIN  (label "Garçom" na UI)  ↔  API.Garcom
+//   App.GERENTE                        ↔  API.Admin (precisa AdminKey)
+// Mantemos os dois sentidos da tradução pra não mexer no código de nenhum lado.
+const API_ROLE = {
+  [ROLES.CLIENTE]: 'Cliente',
+  [ROLES.ADMIN]: 'Garcom',
+  [ROLES.GERENTE]: 'Admin',
+};
+
+const APP_ROLE = {
+  Cliente: ROLES.CLIENTE,
+  Garcom: ROLES.ADMIN,
+  Admin: ROLES.GERENTE,
+};
+
+// Constrói o objeto user que o app espera a partir do JWT.
+// Telefone não vem no token; o login não retorna telefone — fica null
+// (o app só usa nome/email/role nas telas).
+function buildUserFromToken(token) {
+  const claims = userFromJwt(token);
+  const appRole = APP_ROLE[claims.role];
+  if (!appRole) {
+    throw new Error(`Role desconhecida recebida do servidor: ${claims.role}`);
+  }
+  return {
+    id: claims.id,
+    nome: claims.nome,
+    email: claims.email,
+    telefone: null,
+    role: appRole,
+  };
+}
+
+// A API tem um único endpoint /auth/login que autentica qualquer role.
+// A tela de login força a escolha do perfil (Cliente/Garçom/Gerente) antes,
+// então a gente confere o claim de role do JWT contra a escolha — senão um
+// cliente conseguiria entrar na interface de garçom só com email/senha dele.
+async function loginWithExpectedRole(email, senha, expectedAppRole) {
+  const resp = await csharpApi.post(
+    '/auth/login',
+    { email: email.toLowerCase().trim(), senha },
+    { requiresAuth: false },
+  );
+
+  const token = resp?.token;
+  if (!token) {
+    throw new Error('Resposta inválida do servidor (token ausente).');
+  }
+
+  const user = buildUserFromToken(token);
+
+  if (user.role !== expectedAppRole) {
+    const labels = { CLIENTE: 'Cliente', ADMIN: 'Garçom', GERENTE: 'Gerente' };
+    throw new Error(
+      `Esta conta é de ${labels[user.role] || user.role}, não de ${labels[expectedAppRole]}. ` +
+      `Selecione o perfil correto.`
+    );
+  }
+
+  await saveToken(token);
+  await saveUser(user);
+  return { user, token };
 }
 
 // ─── LOGIN COMO CLIENTE ──────────────────────────────────────────────────────
-// Valida email + senha contra a lista mockada
 export async function loginAsCliente(email, senha) {
   try {
-    await mockDelay();
-    const emailLower = email.toLowerCase().trim();
-
-    const cliente = MOCK_CLIENTES.find((c) => {
-      return c.email.toLowerCase() === emailLower && c.senha === senha;
-    });
-
-    if (!cliente) {
-      throw new Error('E-mail ou senha incorretos. Verifique seus dados.');
-    }
-
-    const user = {
-      id: cliente.id,
-      nome: cliente.nome,
-      email: cliente.email,
-      telefone: cliente.telefone,
-      role: ROLES.CLIENTE,
-    };
-
-    const token = generateLocalToken(user.id, ROLES.CLIENTE);
-    await saveToken(token);
-    await saveUser(user);
-
-    return { user, token };
+    return await loginWithExpectedRole(email, senha, ROLES.CLIENTE);
   } catch (error) {
     logger.error('Erro no login de cliente:', error);
     throw error;
@@ -63,75 +102,19 @@ export async function loginAsCliente(email, senha) {
 }
 
 // ─── LOGIN COMO ADMIN (Garçom) ───────────────────────────────────────────────
-// Valida email + senha contra a lista mockada
 export async function loginAsAdmin(email, senha) {
   try {
-    await mockDelay();
-    const emailLower = email.toLowerCase().trim();
-
-    const garcom = MOCK_GARCONS.find((g) => {
-      return (
-        g.email.toLowerCase() === emailLower &&
-        g.senha === senha &&
-        g.ativo !== false
-      );
-    });
-
-    if (!garcom) {
-      throw new Error('E-mail ou senha incorretos, ou garçom inativo.');
-    }
-
-    const user = {
-      id: garcom.id,
-      nome: garcom.nome,
-      email: garcom.email,
-      telefone: garcom.telefone,
-      role: ROLES.ADMIN,
-    };
-
-    const token = generateLocalToken(user.id, ROLES.ADMIN);
-    await saveToken(token);
-    await saveUser(user);
-
-    return { user, token };
+    return await loginWithExpectedRole(email, senha, ROLES.ADMIN);
   } catch (error) {
-    logger.error('Erro no login de admin:', error);
+    logger.error('Erro no login de admin/garçom:', error);
     throw error;
   }
 }
 
-// ─── LOGIN COMO GERENTE ─────────────────────────────────────────────────────
-// Valida email + senha contra a lista mockada de gerentes
+// ─── LOGIN COMO GERENTE ──────────────────────────────────────────────────────
 export async function loginAsGerente(email, senha) {
   try {
-    await mockDelay();
-    const emailLower = email.toLowerCase().trim();
-
-    const gerente = MOCK_GERENTES.find((g) => {
-      return (
-        g.email.toLowerCase() === emailLower &&
-        g.senha === senha &&
-        g.ativo !== false
-      );
-    });
-
-    if (!gerente) {
-      throw new Error('E-mail ou senha incorretos, ou gerente inativo.');
-    }
-
-    const user = {
-      id: gerente.id,
-      nome: gerente.nome,
-      email: gerente.email,
-      telefone: gerente.telefone,
-      role: ROLES.GERENTE,
-    };
-
-    const token = generateLocalToken(user.id, ROLES.GERENTE);
-    await saveToken(token);
-    await saveUser(user);
-
-    return { user, token };
+    return await loginWithExpectedRole(email, senha, ROLES.GERENTE);
   } catch (error) {
     logger.error('Erro no login de gerente:', error);
     throw error;
@@ -139,65 +122,53 @@ export async function loginAsGerente(email, senha) {
 }
 
 // ─── CADASTRO DE CLIENTE ─────────────────────────────────────────────────────
-// Cria um novo cliente em memória e já faz login
-// (não persiste entre reloads do app — só durante a sessão)
-export async function registerCliente(nome, email, senha, telefone) {
+// /auth/register-cliente só cria a conta — não devolve JWT. Fazemos login
+// logo em seguida pra a pessoa já entrar autenticada sem digitar de novo.
+export async function registerCliente(nome, email, senha, telefone, dataNascimento) {
   try {
-    await mockDelay();
-    const emailLower = email.toLowerCase().trim();
-
-    // Verifica se email já existe
-    const existente = MOCK_CLIENTES.find(
-      (c) => c.email.toLowerCase() === emailLower
-    );
-    if (existente) {
-      throw new Error('Já existe um cliente cadastrado com esse e-mail.');
+    if (!dataNascimento) {
+      throw new Error('Data de nascimento é obrigatória.');
     }
 
-    const novo = {
-      id: `mock-cli-${Date.now()}`,
-      nome: nome.trim(),
-      email: emailLower,
-      senha: senha,
-      telefone: telefone.trim(),
-    };
+    await csharpApi.post(
+      '/auth/register-cliente',
+      {
+        nome: nome.trim(),
+        email: email.toLowerCase().trim(),
+        senha,
+        telefone: telefone.trim(),
+        dataNascimento, // ISO string (ex: "2003-01-15T00:00:00")
+      },
+      { requiresAuth: false },
+    );
 
-    MOCK_CLIENTES.push(novo);
-
-    const user = {
-      id: novo.id,
-      nome: novo.nome,
-      email: novo.email,
-      telefone: novo.telefone,
-      role: ROLES.CLIENTE,
-    };
-    const token = generateLocalToken(user.id, ROLES.CLIENTE);
-    await saveToken(token);
-    await saveUser(user);
-
-    return { user, token };
+    // cadastro OK → faz login automático pra obter JWT
+    return await loginWithExpectedRole(email, senha, ROLES.CLIENTE);
   } catch (error) {
     logger.error('Erro no cadastro de cliente:', error);
     throw error;
   }
 }
 
-// ─── GET CURRENT USER (de sessão salva) ──────────────────────────────────────
+// ─── GET CURRENT USER (a partir do token salvo) ──────────────────────────────
+// Usado no restoreSession. Se o token estiver expirado, limpa e retorna null.
 export async function getCurrentUser() {
   try {
     const token = await getToken();
     if (!token) return null;
 
-    try {
-      const decoded = atob(token);
-      const parts = decoded.split(':');
-      if (parts.length !== 3) throw new Error('Token inválido');
-    } catch (_) {
+    if (isJwtExpired(token)) {
       await removeToken();
       return null;
     }
 
-    return await getSavedUser();
+    try {
+      return buildUserFromToken(token);
+    } catch (e) {
+      logger.warn('Token JWT inválido, removendo:', e);
+      await removeToken();
+      return null;
+    }
   } catch (error) {
     logger.warn('Erro ao obter usuário atual:', error);
     return null;
@@ -212,18 +183,14 @@ export async function logout() {
 // ─── VERIFICAÇÃO DE TOKEN ─────────────────────────────────────────────────────
 export async function hasValidToken() {
   const token = await getToken();
-  if (!token) return false;
-  try {
-    const decoded = atob(token);
-    return decoded.split(':').length === 3;
-  } catch (_) {
-    return false;
-  }
+  return !!token && !isJwtExpired(token);
 }
 
-// ─── OPERAÇÕES MOCKADAS ──────────────────────────────────────────────────────
-
+// ─── OPERAÇÕES MOCKADAS REMOVIDAS ────────────────────────────────────────────
+// fetchGarcons agora vem do garçomService real (se necessário).
+// Mantida exportação vazia pra não quebrar imports legados, mas o app
+// não deve mais usar.
 export async function fetchGarcons() {
-  await mockDelay();
-  return MOCK_GARCONS;
+  logger.warn('fetchGarcons() deprecated — usar service específico');
+  return [];
 }

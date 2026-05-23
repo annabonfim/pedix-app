@@ -62,9 +62,16 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Garante que toda sessão nova começa sem mesa/restaurante herdado da anterior
+  const clearSessionContext = async () => {
+    await AsyncStorage.removeItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER);
+    await AsyncStorage.removeItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID);
+  };
+
   // role: 'CLIENTE' | 'ADMIN' | 'GERENTE'
 
   const login = useCallback(async (email, senha, role) => {
+    await clearSessionContext();
     let result;
     if (role === 'GERENTE') {
       result = await loginAsGerente(email, senha);
@@ -87,8 +94,9 @@ export function AuthProvider({ children }) {
     setToken(null);
   }, []);
 
-  const register = useCallback(async (nome, email, senha, telefone) => {
-    const result = await registerCliente(nome, email, senha, telefone);
+  const register = useCallback(async (nome, email, senha, telefone, dataNascimento) => {
+    await clearSessionContext();
+    const result = await registerCliente(nome, email, senha, telefone, dataNascimento);
     setUser(result.user);
     setToken(result.token);
     return result.user;
