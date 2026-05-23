@@ -23,6 +23,10 @@ export function useMesas() {
       const list = Array.isArray(res) ? res : res?.data || res?.items || [];
       return list.map(mapMesa);
     },
-    refetchInterval: 30_000,
+    // Dashboard de mesas é o painel "ao vivo" do garçom — vale poll
+    // mais frequente pra status mudar em segundos quando cliente cria pedido
+    // ou paga conta. 5s alinha com useAllPedidos pra atualização coerente.
+    refetchInterval: 5_000,
+    staleTime: 0,
   });
 }
