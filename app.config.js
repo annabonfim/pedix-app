@@ -27,8 +27,10 @@ module.exports = {
     },
     ios: {
       supportsTablet: true,
+      bundleIdentifier: 'com.annabonfim.pedix',
     },
     android: {
+      package: 'com.annabonfim.pedix',
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
