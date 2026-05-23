@@ -180,7 +180,11 @@ Gerente
 Login agora é real — bate na API .NET com BCrypt + JWT. Os usuários abaixo estão cadastrados no banco Oracle.
 
 ### Cliente
-Crie pela tela de **signup** do app, ou use um já cadastrado.
+| E-mail | Senha |
+|--------|-------|
+| cliente@pedix.com | cliente123 |
+
+> Você também pode criar um novo cliente pela tela de **signup** do app.
 
 ### Garçom
 | E-mail | Senha |
