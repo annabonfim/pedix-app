@@ -39,32 +39,30 @@ export async function javaRequest(endpoint, options = {}) {
 
     if (!response.ok) {
       let errorMessage = `Erro ${response.status}`;
+      let serverMessage = null;
 
       try {
         const errorData = await response.json();
+        serverMessage =
+          errorData.message || errorData.mensagem || errorData.error || null;
+      } catch (_) {
+        // resposta sem body JSON — segue com a mensagem padrão
+      }
 
-        // Tenta pegar mensagem de erro da API
-        if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.mensagem) {
-          errorMessage = errorData.mensagem;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        }
-
-        // Mensagens mais amigáveis para erros comuns
-        if (response.status === 404) {
-          errorMessage = 'Recurso não encontrado. Verifique se a mesa/comanda existe.';
-        } else if (response.status === 400) {
-          errorMessage = errorData.message || 'Dados inválidos. Verifique as informações fornecidas.';
-        } else if (response.status === 500) {
-          errorMessage = 'Erro no servidor. Tente novamente mais tarde.';
-        }
-      } catch (parseError) {
-        // Se não conseguir fazer parse do JSON, usa mensagem padrão
-        if (response.status === 404) {
-          errorMessage = 'Recurso não encontrado. Verifique se a mesa/comanda existe.';
-        }
+      // Mensagens amigáveis por status. Pra 404 a gente cita o endpoint
+      // pra ficar claro o que não foi achado (antes dizia "mesa/comanda"
+      // pra qualquer 404, mesmo em /item-cardapio).
+      if (response.status === 404) {
+        errorMessage = serverMessage
+          || `Recurso não encontrado em ${endpoint}.`;
+      } else if (response.status === 400) {
+        errorMessage = serverMessage
+          || 'Dados inválidos. Verifique as informações fornecidas.';
+      } else if (response.status === 500) {
+        errorMessage = serverMessage
+          || 'Erro no servidor. Tente novamente mais tarde.';
+      } else if (serverMessage) {
+        errorMessage = serverMessage;
       }
 
       const javaError = new Error(errorMessage);
