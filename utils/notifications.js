@@ -62,7 +62,10 @@ export async function setupAndroidChannel() {
   }
 }
 
-// Dispara uma notificação local imediata
+// Dispara uma notificação local imediata. Usa o canal 'pedidos'
+// (IMPORTANCE_HIGH) pra aparecer como heads-up sobre a tela em vez de
+// só no drawer. Sem o channelId cairia no Default (IMPORTANCE_DEFAULT)
+// que não popa banner no Android 8+.
 export async function notifyStatusPedido({ title, body, data = {} }) {
   try {
     await Notifications.scheduleNotificationAsync({
@@ -72,7 +75,9 @@ export async function notifyStatusPedido({ title, body, data = {} }) {
         data,
         sound: 'default',
       },
-      trigger: null, // imediato
+      trigger: Platform.OS === 'android'
+        ? { channelId: 'pedidos' }
+        : null,
     });
   } catch (error) {
     logger.warn('Erro ao disparar notificação:', error);
