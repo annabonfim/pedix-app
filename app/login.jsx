@@ -21,6 +21,7 @@ export default function LoginScreen() {
   const [role, setRole]       = useState('CLIENTE');
   const [email, setEmail]     = useState('');
   const [senha, setSenha]     = useState('');
+  const [showSenha, setShowSenha] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isAdmin = role === 'ADMIN';
@@ -131,10 +132,21 @@ export default function LoginScreen() {
                 placeholder="Digite sua senha"
                 placeholderTextColor={colors.textMuted}
                 value={senha} onChangeText={setSenha}
-                secureTextEntry
+                secureTextEntry={!showSenha}
                 autoCorrect={false} autoCapitalize="none"
                 autoComplete="off" importantForAutofill="no"
               />
+              <TouchableOpacity
+                onPress={() => setShowSenha((v) => !v)}
+                style={s.eyeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons
+                  name={showSenha ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.textSub}
+                />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -240,6 +252,7 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderRadius: 12, height: 50,
   },
   inputIcon: { paddingLeft: 14 },
+  eyeBtn:    { paddingHorizontal: 14, height: '100%', justifyContent: 'center' },
   input:     { flex: 1, height: '100%', paddingHorizontal: 12, fontSize: 15 },
 
   btn: {

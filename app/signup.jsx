@@ -19,6 +19,7 @@ export default function SignupScreen() {
   const [nome, setNome]         = useState('');
   const [email, setEmail]       = useState('');
   const [senha, setSenha]       = useState('');
+  const [showSenha, setShowSenha] = useState(false);
   const [telefone, setTelefone] = useState('');
   const [nascimento, setNascimento] = useState(''); // formato DD/MM/AAAA
   const [loading, setLoading]   = useState(false);
@@ -133,9 +134,20 @@ export default function SignupScreen() {
                 placeholder="Crie uma senha"
                 placeholderTextColor={colors.textMuted}
                 value={senha} onChangeText={setSenha}
-                secureTextEntry
+                secureTextEntry={!showSenha}
                 autoCorrect={false} autoCapitalize="none"
               />
+              <TouchableOpacity
+                onPress={() => setShowSenha((v) => !v)}
+                style={s.eyeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons
+                  name={showSenha ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.textSub}
+                />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -221,6 +233,7 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderRadius: 12, height: 50,
   },
   inputIcon: { paddingLeft: 14 },
+  eyeBtn:    { paddingHorizontal: 14, height: '100%', justifyContent: 'center' },
   input:     { flex: 1, height: '100%', paddingHorizontal: 12, fontSize: 15 },
 
   btn: {
