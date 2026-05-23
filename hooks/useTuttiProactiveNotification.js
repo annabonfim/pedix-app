@@ -15,13 +15,18 @@ import { logger } from '../utils/logger';
 
 const DEFAULT_DELAY_MS = 20_000;
 
+// Flag no escopo do módulo — sobrevive a remounts (cliente sair do cardápio
+// e voltar não re-arma o timer). Só zera quando o JS bundle recarrega
+// (full app restart / hot reload do Metro). Não usamos AsyncStorage porque
+// a regra é "uma vez por sessão do app", não "uma vez por instalação".
+let hasFiredThisSession = false;
+
 export function useTuttiProactiveNotification({
   active = true,
   cartEmpty = true,
   delayMs = DEFAULT_DELAY_MS,
 } = {}) {
   const timerRef = useRef(null);
-  const firedRef = useRef(false);
 
   useEffect(() => {
     const clear = () => {
@@ -31,19 +36,19 @@ export function useTuttiProactiveNotification({
       }
     };
 
-    logger.log('[TUTTI] effect run', { active, cartEmpty, fired: firedRef.current, delayMs });
+    logger.log('[TUTTI] effect run', { active, cartEmpty, fired: hasFiredThisSession, delayMs });
 
     // Cliente adicionou item: trava pra sempre nessa sessão, mesmo se esvaziar
     // o carrinho depois — Tutti não precisa mais se oferecer.
     if (!cartEmpty) {
       logger.log('[TUTTI] cartEmpty=false → travando até fim da sessão');
       clear();
-      firedRef.current = true;
+      hasFiredThisSession = true;
       return;
     }
 
-    if (!active || firedRef.current) {
-      logger.log('[TUTTI] não vai armar — active:', active, 'fired:', firedRef.current);
+    if (!active || hasFiredThisSession) {
+      logger.log('[TUTTI] não vai armar — active:', active, 'fired:', hasFiredThisSession);
       clear();
       return;
     }
@@ -53,7 +58,7 @@ export function useTuttiProactiveNotification({
     timerRef.current = setTimeout(() => {
       logger.log('[TUTTI] timer disparou → chamando notifyTuttiProactive');
       notifyTuttiProactive();
-      firedRef.current = true;
+      hasFiredThisSession = true;
       timerRef.current = null;
     }, delayMs);
 
