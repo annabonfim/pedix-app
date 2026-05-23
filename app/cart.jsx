@@ -9,6 +9,7 @@ import { ItemImage } from '../components/ItemImage';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import { createPedido } from '../services/pedidoService';
+import { useAuth } from '../context/AuthContext';
 import { APP_CONFIG } from '../config/constants';
 import { hasSelectedRestaurante } from '../utils/validation';
 import { colors } from '../styles/theme';
@@ -19,6 +20,7 @@ export default function CartScreen() {
   const params = useLocalSearchParams();
   const { cartItems, removeFromCart, updateItemQuantity, updateItemObservacao, clearCart } = useCart();
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
   const [tableNumber, setTableNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingObservacaoIndex, setEditingObservacaoIndex] = useState(null);
@@ -128,10 +130,12 @@ export default function CartScreen() {
   const submitOrder = async () => {
     try {
       setIsSubmitting(true);
-      
-      const comandaId = parseInt(tableNumber, 10);
-      if (isNaN(comandaId)) {
-        throw new Error('Número da mesa inválido');
+
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+      if (!tableNumber) {
+        throw new Error('Mesa não selecionada.');
       }
 
       // Agrupa itens por ID e observação, somando quantidades
@@ -155,6 +159,7 @@ export default function CartScreen() {
           itemsMap[key] = {
             id: item.id,
             quantity: quantity,
+            price: item.price,
           };
         }
       });
@@ -166,8 +171,8 @@ export default function CartScreen() {
         ? observacoes.join(' | ') 
         : '';
 
-      // Cria o pedido na API
-      await createPedido(comandaId, items, observacaoGeral);
+      // Cria o pedido na API (.NET — usa clienteId do JWT + mesaId do storage)
+      await createPedido(user.id, items, observacaoGeral);
 
       Alert.alert('Sucesso!', 'Pedido enviado para a cozinha! 🎉');
       clearCart();

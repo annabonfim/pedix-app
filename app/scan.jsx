@@ -5,15 +5,48 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { colors, shared, radius } from '../styles/theme';
 import { APP_CONFIG, RESTAURANTES, RESTAURANTE_VALIDO_ID } from '../config/constants';
 import { isRestauranteValido } from '../utils/validation';
+import { csharpApi } from '../services/csharpAPi';
 import { logger } from '../utils/logger';
+
+// Procura o Guid da mesa na API .NET pelo número (1, 2, 3...).
+// Se a mesa não existir lá ainda, cria automaticamente.
+async function resolveMesaIdByNumero(numero) {
+  const num = parseInt(numero, 10);
+  if (Number.isNaN(num)) throw new Error('Número de mesa inválido.');
+  const mesas = await csharpApi.get('/mesas');
+  const lista = Array.isArray(mesas) ? mesas : mesas?.data || [];
+  const found = lista.find((m) => Number(m.numero) === num);
+  if (found?.id) return found.id;
+  // Mesa não existe → cria sob demanda (Sprint 4 simples)
+  const criada = await csharpApi.post('/mesas', {
+    numero: num,
+    capacidade: 4,
+    localizacao: 'Salão',
+    qrCode: `QR${String(num).padStart(3, '0')}`,
+  });
+  return criada.id;
+}
 
 export default function ScanScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { logout } = useAuth();
   const [tableNumber, setTableNumber] = useState('');
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sair da conta',
+      'Deseja voltar para a tela de login?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: logout },
+      ]
+    );
+  };
   const [selectedRestaurante, setSelectedRestaurante] = useState(null);
   const [saved, setSaved] = useState(null);
   const [scanning, setScanning] = useState(false);
@@ -81,7 +114,10 @@ export default function ScanScreen() {
         return;
       }
 
+      const mesaId = await resolveMesaIdByNumero(mesa);
+
       await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER, mesa);
+      await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.MESA_ID, mesaId);
       await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID, String(restauranteId));
       setSaved(mesa);
       setTableNumber(mesa);
@@ -107,13 +143,20 @@ export default function ScanScreen() {
       Alert.alert('Restaurante indisponível', 'Este restaurante não está disponível no momento.');
       return;
     }
-    await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER, tableNumber);
-    await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID, String(selectedRestaurante));
-    setSaved(tableNumber);
-    Alert.alert('Mesa confirmada!', `Mesa ${tableNumber} selecionada com sucesso.`, [
-      { text: 'Ver cardápio', onPress: () => router.push('/menu') },
-      { text: 'OK' },
-    ]);
+    try {
+      const mesaId = await resolveMesaIdByNumero(tableNumber);
+      await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER, tableNumber);
+      await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.MESA_ID, mesaId);
+      await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.RESTAURANTE_ID, String(selectedRestaurante));
+      setSaved(tableNumber);
+      Alert.alert('Mesa confirmada!', `Mesa ${tableNumber} selecionada com sucesso.`, [
+        { text: 'Ver cardápio', onPress: () => router.push('/menu') },
+        { text: 'OK' },
+      ]);
+    } catch (e) {
+      logger.warn('Erro ao confirmar mesa:', e);
+      Alert.alert('Erro', 'Não foi possível registrar a mesa. Tente novamente.');
+    }
   };
 
   // ─── TELA DA CÂMERA ───────────────────────────────────────────────────────
@@ -145,12 +188,17 @@ export default function ScanScreen() {
       <View style={[s.header, { backgroundColor: colors.navy }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Text style={shared.headerTitle}>Mesa</Text>
-          <TouchableOpacity onPress={toggleTheme} style={{ padding: 4 }}>
-            <Ionicons
-              name={theme.mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
-              size={20} color="rgba(255,255,255,0.75)"
-            />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <TouchableOpacity onPress={toggleTheme} style={{ padding: 4 }}>
+              <Ionicons
+                name={theme.mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
+                size={20} color="rgba(255,255,255,0.75)"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleLogout} style={{ padding: 4 }}>
+              <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.75)" />
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={shared.headerSub}>Escaneie o QR Code ou informe manualmente</Text>
       </View>

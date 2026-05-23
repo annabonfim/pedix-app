@@ -28,7 +28,7 @@ export function usePedidoStatusNotifications(pedidos) {
         if (msg) {
           notifyStatusPedido({
             ...msg,
-            data: { pedidoId: pedido.id, status: pedido.status },
+            data: { pedidoId: pedido.id, status: pedido.status, action: 'open_orders' },
           });
         }
       }

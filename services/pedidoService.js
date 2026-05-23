@@ -1,36 +1,89 @@
-// Serviço para gerenciar pedidos
+// Serviço para gerenciar pedidos via API .NET (C#).
+//
+// Fluxo de criação:
+//   1. POST /api/pedidos?clienteId=X&garcomId=Y&mesaId=Z → cria pedido vazio
+//   2. POST /api/pedido-itens × N → adiciona cada item (com itemCardapioId do Java)
+//
+// IDs:
+//   - clienteId: vem do JWT (user.id do AuthContext)
+//   - garcomId: helper getDefaultGarcomId() pega o 1º garçom da lista
+//   - mesaId: salvo em AsyncStorage quando o cliente escolhe mesa (mesa:id)
+//   - itemCardapioId: ID do item no cardápio Java (int)
 
-import { api } from './api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { csharpApi } from './csharpAPi';
+import { APP_CONFIG } from '../config/constants';
 import { logger } from '../utils/logger';
 
-// Cria um novo pedido vinculado a uma comanda
-// comandaId: número da mesa/comanda
-// items: array com os itens do pedido { id, quantity }
-// observacao: observação opcional do pedido
-export async function createPedido(comandaId, items, observacao = '') {
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+
+// Fallback usado se GET /garcons falhar (defensive). Aponta pro garçom
+// "Carlos" cadastrado no banco local da Anna na tabela GARCONS.
+const FALLBACK_GARCOM_ID = '2f4773ab-93ca-4f29-b454-fc0747fdf771';
+
+let _cachedGarcomId = null;
+export async function getDefaultGarcomId() {
+  if (_cachedGarcomId) return _cachedGarcomId;
   try {
-    const pedidoDTO = {
-      itens: items.map((item) => ({
-        itemCardapioId: parseInt(item.id, 10),
-        quantidade: item.quantity || 1,
-      })),
-      observacao: observacao || null,
-    };
+    const garcons = await csharpApi.get('/garcons');
+    const lista = Array.isArray(garcons) ? garcons : garcons?.data || [];
+    const ativo = lista.find((g) => g.ativo !== false) || lista[0];
+    if (ativo?.id) {
+      _cachedGarcomId = ativo.id;
+      return _cachedGarcomId;
+    }
+  } catch (error) {
+    logger.warn('[PEDIDO] GET /garcons falhou — usando garcomId fallback');
+  }
+  _cachedGarcomId = FALLBACK_GARCOM_ID;
+  return _cachedGarcomId;
+}
 
-    logger.log('📤 Enviando pedido:', {
-      comandaId,
-      endpoint: `/pedido/comanda/${comandaId}`,
-      payload: pedidoDTO,
-      itemsCount: items.length,
-    });
+// Resolve o mesaId (Guid) que tá salvo no storage quando o cliente escolheu mesa.
+async function getStoredMesaId() {
+  const id = await AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.MESA_ID);
+  if (!id) {
+    throw new Error('Mesa não selecionada. Volte e escaneie/informe uma mesa.');
+  }
+  return id;
+}
 
-    const response = await api.post(`/pedido/comanda/${comandaId}`, pedidoDTO);
-    
-    logger.log('✅ Resposta da API:', response);
-    
-    // A API retorna os dados dentro de 'pedido' ou 'content'
-    const pedido = response.pedido || response.content || response;
-    
+// ─── CRIAR PEDIDO ─────────────────────────────────────────────────────────────
+// items: array com { id (do cardápio Java, int), price, quantity }
+// clienteId: vem do AuthContext, obrigatório
+export async function createPedido(clienteId, items, observacao = '') {
+  try {
+    if (!clienteId) throw new Error('Cliente não autenticado.');
+    if (!items?.length) throw new Error('Pedido sem itens.');
+
+    const mesaId = await getStoredMesaId();
+    const garcomId = await getDefaultGarcomId();
+
+    logger.log('📤 Criando pedido C#', { clienteId, garcomId, mesaId, itens: items.length });
+
+    // 1) Cria o pedido vazio
+    const qsPedido = new URLSearchParams({ clienteId, garcomId, mesaId }).toString();
+    const pedido = await csharpApi.post(`/pedidos?${qsPedido}`, null);
+
+    if (!pedido?.id) {
+      throw new Error('API não retornou id do pedido.');
+    }
+
+    // 2) Adiciona cada item (serial pra evitar race condition no DB)
+    for (const item of items) {
+      const itemCardapioId = parseInt(item.id, 10);
+      const quantidade = item.quantity || 1;
+      const precoMomento = Number(item.price || 0);
+      const qsItem = new URLSearchParams({
+        pedidoId: pedido.id,
+        itemCardapioId: String(itemCardapioId),
+        quantidade: String(quantidade),
+        precoMomento: String(precoMomento),
+      }).toString();
+      await csharpApi.post(`/pedido-itens?${qsItem}`, null);
+    }
+
+    logger.log('✅ Pedido criado:', pedido.id);
     return pedido;
   } catch (error) {
     logger.error('Erro ao criar pedido:', error);
@@ -38,149 +91,146 @@ export async function createPedido(comandaId, items, observacao = '') {
   }
 }
 
-// Busca todos os pedidos de uma comanda específica
-export async function fetchPedidosByComanda(comandaId) {
+// ─── BUSCAR PEDIDOS DO CLIENTE ────────────────────────────────────────────────
+// Retorna lista de pedidos do cliente atual, com items carregados (1 chamada extra por pedido).
+export async function fetchPedidosByCliente(clienteId) {
+  if (!clienteId) return [];
   try {
-    const response = await api.get(`/pedido/comanda/${comandaId}`);
-    
-    // A API pode retornar os dados em formatos diferentes
-    let pedidos = [];
-    
-    if (Array.isArray(response)) {
-      // Extrai os dados de cada pedido
-      pedidos = response.map((item) => {
-        return item.content || item;
-      });
-    } else if (response.content) {
-      // Se for um único EntityModel
-      pedidos = [response.content];
-    }
-    
-    return pedidos;
+    const pedidos = await csharpApi.get(`/pedidos/cliente/${clienteId}`);
+    const lista = Array.isArray(pedidos) ? pedidos : [];
+
+    // Pra cada pedido, busca os items
+    const comItens = await Promise.all(
+      lista.map(async (p) => {
+        const itens = await fetchItensByPedido(p.id);
+        return mapPedidoFromCSharp(p, itens);
+      })
+    );
+    return comItens;
   } catch (error) {
-    logger.error(`Erro ao buscar pedidos da comanda ${comandaId}:`, error);
+    logger.error(`Erro ao buscar pedidos do cliente ${clienteId}:`, error);
     throw error;
   }
 }
 
-// Busca um pedido específico por ID
+// ─── BUSCAR TODOS OS PEDIDOS ──────────────────────────────────────────────────
+// Usado pelo dashboard de mesas pra mostrar preview do que cada mesa tem.
+export async function fetchAllPedidos() {
+  try {
+    const pedidos = await csharpApi.get('/pedidos');
+    const lista = Array.isArray(pedidos) ? pedidos : [];
+    const comItens = await Promise.all(
+      lista.map(async (p) => {
+        const itens = await fetchItensByPedido(p.id);
+        return mapPedidoFromCSharp(p, itens);
+      })
+    );
+    return comItens;
+  } catch (error) {
+    logger.error('Erro ao buscar todos os pedidos:', error);
+    throw error;
+  }
+}
+
+// ─── BUSCAR PEDIDOS POR MESA ──────────────────────────────────────────────────
+export async function fetchPedidosByMesa(mesaId) {
+  if (!mesaId) return [];
+  try {
+    const pedidos = await csharpApi.get(`/pedidos/mesa/${mesaId}`);
+    const lista = Array.isArray(pedidos) ? pedidos : [];
+    const comItens = await Promise.all(
+      lista.map(async (p) => {
+        const itens = await fetchItensByPedido(p.id);
+        return mapPedidoFromCSharp(p, itens);
+      })
+    );
+    return comItens;
+  } catch (error) {
+    logger.error(`Erro ao buscar pedidos da mesa ${mesaId}:`, error);
+    throw error;
+  }
+}
+
+// ─── BUSCAR ITENS DE UM PEDIDO ────────────────────────────────────────────────
+export async function fetchItensByPedido(pedidoId) {
+  try {
+    const itens = await csharpApi.get(`/pedido-itens/pedido/${pedidoId}`);
+    return Array.isArray(itens) ? itens : [];
+  } catch (error) {
+    logger.warn(`Erro ao buscar itens do pedido ${pedidoId}:`, error);
+    return [];
+  }
+}
+
+// ─── BUSCAR PEDIDO POR ID ─────────────────────────────────────────────────────
 export async function fetchPedidoById(pedidoId) {
   try {
-    const response = await api.get(`/pedido/${pedidoId}`);
-    
-    // Extrai os dados do pedido da resposta
-    const pedido = response.content || response;
-    
-    return pedido;
+    const pedido = await csharpApi.get(`/pedidos/${pedidoId}`);
+    const itens = await fetchItensByPedido(pedidoId);
+    return mapPedidoFromCSharp(pedido, itens);
   } catch (error) {
     logger.error(`Erro ao buscar pedido ${pedidoId}:`, error);
     throw error;
   }
 }
 
-// Atualiza o status de um pedido
-// pedidoId: ID do pedido
-// status: 'EM_PREPARO', 'PRONTO', 'ENTREGUE', 'CANCELADO'
-// Precisa buscar o pedido primeiro pra mandar os itens junto (API exige)
+// ─── ATUALIZAR STATUS ─────────────────────────────────────────────────────────
+// status: 'EM_PREPARO' | 'PRONTO' | 'ENTREGUE' | 'CANCELADO'
 export async function atualizarStatusPedido(pedidoId, status) {
   try {
-    // Busca pedido atual pra pegar os itens
-    const pedidoAtual = await fetchPedidoById(pedidoId);
-
-    const pedidoDTO = {
-      itens: (pedidoAtual.itens || []).map((item) => ({
-        itemCardapioId: item.itemCardapioId,
-        quantidade: item.quantidade || 1,
-      })),
-      observacao: pedidoAtual.observacao || null,
-      status: status,
-    };
-
-    const response = await api.put(`/pedido/${pedidoId}`, pedidoDTO);
-    const pedido = response.pedido || response.content || response;
-
-    return pedido;
+    return await csharpApi.put(`/pedidos/${pedidoId}/status`, { status });
   } catch (error) {
     logger.error(`Erro ao atualizar status do pedido ${pedidoId}:`, error);
     throw error;
   }
 }
 
-// Atualiza um pedido existente
-// pedidoId: ID do pedido a ser atualizado
-// comandaId: número da mesa/comanda
-// items: array com os itens do pedido { id, quantity }
-// observacao: observação opcional do pedido
-export async function atualizarPedido(pedidoId, comandaId, items, observacao = '') {
+// ─── DELETAR / CANCELAR PEDIDO ────────────────────────────────────────────────
+// Não tem DELETE no contrato — soft delete via status=CANCELADO.
+export async function deletarPedido(pedidoId) {
+  return atualizarStatusPedido(pedidoId, 'CANCELADO');
+}
+
+// ─── ATUALIZAR PEDIDO (cancela + recria) ──────────────────────────────────────
+// Como a API não tem PUT pedido, "editar" = cancelar antigo + criar novo.
+export async function atualizarPedido(pedidoId, clienteId, items, observacao = '') {
   try {
-    const pedidoDTO = {
-      itens: items.map((item) => ({
-        itemCardapioId: parseInt(item.id, 10),
-        quantidade: item.quantity || 1,
-      })),
-      observacao: observacao || null,
-    };
-
-    logger.log('🔄 Atualizando pedido:', {
-      pedidoId,
-      comandaId,
-      endpoint: `/pedido/${pedidoId}`,
-      payload: pedidoDTO,
-    });
-
-    // Tenta atualizar usando PUT endpoint (agora disponível na API)
-    try {
-      const response = await api.put(`/pedido/${pedidoId}`, pedidoDTO);
-      const pedido = response.pedido || response.content || response;
-      logger.log('✅ Pedido atualizado com sucesso:', pedido);
-      return pedido;
-    } catch (putError) {
-      // Se PUT não funcionar, usa alternativa: cancela e recria
-      logger.warn('⚠️ PUT falhou, usando fallback (cancelar e recriar)...', putError);
-      
-      if (putError.status === 404 || putError.status === 405 || putError.status >= 500) {
-        // Cancela pedido antigo
-        try {
-          await atualizarStatusPedido(pedidoId, 'CANCELADO');
-        } catch (cancelError) {
-          logger.warn('Aviso ao cancelar pedido antigo:', cancelError);
-          // Continua mesmo se der erro ao cancelar
-        }
-        
-        // Cria novo pedido com os dados atualizados
-        const novoPedido = await createPedido(comandaId, items, observacao);
-        logger.log('✅ Pedido atualizado (recriado) com sucesso:', novoPedido);
-        return novoPedido;
-      }
-      // Se for outro erro (400, 401, 403), propaga o erro
-      throw putError;
-    }
+    await atualizarStatusPedido(pedidoId, 'CANCELADO');
+    return await createPedido(clienteId, items, observacao);
   } catch (error) {
     logger.error(`Erro ao atualizar pedido ${pedidoId}:`, error);
     throw error;
   }
 }
 
-// Deleta um pedido (cancela o pedido)
-// pedidoId: ID do pedido a ser deletado
-export async function deletarPedido(pedidoId) {
-  try {
-    // Tenta deletar usando DELETE endpoint
-    try {
-      await api.delete(`/pedido/${pedidoId}`);
-      return { success: true, message: 'Pedido cancelado com sucesso' };
-    } catch (deleteError) {
-      // Se DELETE não existir, cancela mudando status para CANCELADO
-      if (deleteError.status === 404 || deleteError.status === 405) {
-        const response = await atualizarStatusPedido(pedidoId, 'CANCELADO');
-        return { success: true, message: 'Pedido cancelado com sucesso', pedido: response };
-      }
-      throw deleteError;
-    }
-  } catch (error) {
-    logger.error(`Erro ao deletar pedido ${pedidoId}:`, error);
-    throw error;
-  }
+// ─── MAPPING C# → shape esperado pelo app ─────────────────────────────────────
+// O app antigo (Java) usava: id (int), dataCriacao, total, itens[].nomeProduto.
+// O C# usa: id (Guid), dataPedido, valorTotal, itens vêm separados.
+// Mapeamos pra um shape único pra orders.jsx não precisar mudar muito.
+function mapPedidoFromCSharp(pedido, itens) {
+  const itensFmt = itens.map((it) => ({
+    id: it.id,
+    itemCardapioId: it.itemCardapioId,
+    quantidade: it.quantidade,
+    precoUnitario: parseFloat(it.precoMomento || 0),
+    subtotal: parseFloat(it.subtotal || it.precoMomento * it.quantidade || 0),
+    // nomeProduto fica vazio aqui — UI vai lookup no cardápio se quiser mostrar
+    nomeProduto: null,
+  }));
+
+  const total = itensFmt.reduce((s, i) => s + i.subtotal, 0);
+
+  return {
+    id: pedido.id,
+    clienteId: pedido.clienteId,
+    garcomId: pedido.garcomId,
+    mesaId: pedido.mesaId,
+    dataCriacao: pedido.dataPedido, // alias pro nome antigo
+    dataPedido: pedido.dataPedido,
+    total,                          // alias pro nome antigo
+    valorTotal: total,
+    status: pedido.status || 'ABERTO',
+    itens: itensFmt,
+    observacao: '',                 // C# não tem campo observacao
+  };
 }
-
-

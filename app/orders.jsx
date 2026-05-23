@@ -6,7 +6,8 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { usePedidosByComanda, useDeletarPedido } from '../hooks/usePedidos';
+import { useMeusPedidos, useDeletarPedido } from '../hooks/usePedidos';
+import { useMenuItems } from '../hooks/useMenuItems';
 import { usePedidoStatusNotifications } from '../hooks/usePedidoStatusNotifications';
 import { TuttiLoading } from '../components/Tutti/TuttiLoading';
 import { useAuth } from '../context/AuthContext';
@@ -36,12 +37,20 @@ export default function OrdersScreen() {
     isLoading,
     isFetching,
     refetch,
-  } = usePedidosByComanda(tableNumber);
+  } = useMeusPedidos();
 
-  const deletarMutation = useDeletarPedido(tableNumber);
+  const deletarMutation = useDeletarPedido();
 
   // Dispara notificação local quando o status de algum pedido muda
   usePedidoStatusNotifications(pedidos);
+
+  // Mapa itemCardapioId → nome (pra mostrar nomes em vez de "Item #1")
+  // A C# guarda só o ID do cardápio; o nome vem do cardápio Java.
+  const { data: menuItems = [] } = useMenuItems();
+  const itemNameById = menuItems.reduce((acc, it) => {
+    acc[it.id] = it.name;
+    return acc;
+  }, {});
 
   // Ordena por mais recente
   const pedidosOrdenados = [...pedidos].sort((a, b) => {
@@ -49,6 +58,15 @@ export default function OrdersScreen() {
     const dB = new Date(b.dataCriacao || 0);
     return dB - dA;
   });
+
+  // Total da conta = soma dos pedidos não-cancelados (pra mostrar no botão "Pagar")
+  const pedidosPagaveis = pedidos.filter(
+    (p) => (p.status || '').toUpperCase() !== 'CANCELADO'
+  );
+  const totalConta = pedidosPagaveis.reduce(
+    (sum, p) => sum + (p.total ? parseFloat(p.total) : 0),
+    0
+  );
 
   // ─── ACTIONS ─────────────────────────────────────────────────────────────
   const handleEditPedido = (pedido) => {
@@ -84,7 +102,12 @@ export default function OrdersScreen() {
     if (!itens?.length) return 'Sem itens';
     return itens
       .map((item) => {
-        const nome = item.nome || item.itemCardapio?.nome || item.itemCardapio?.name || `Item ${item.itemCardapioId}`;
+        const nome =
+          item.nome ||
+          item.itemCardapio?.nome ||
+          item.itemCardapio?.name ||
+          itemNameById[item.itemCardapioId] ||
+          `Item #${item.itemCardapioId}`;
         return `${item.quantidade || 1}x ${nome}`;
       })
       .join(', ');
@@ -164,14 +187,21 @@ export default function OrdersScreen() {
             return (
               <View key={pedido.id} style={s.card}>
                 <View style={s.pedidoHeader}>
-                  <View>
-                    <Text style={[s.pedidoId, { color: theme.text }]}>Pedido #{pedido.id}</Text>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={[s.pedidoId, { color: theme.text }]} numberOfLines={1}>
+                      Pedido #{String(pedido.id).slice(-4).toUpperCase()}
+                    </Text>
                     <Text style={[s.pedidoDate, { color: theme.textSecondary }]}>
                       {formatPedidoDate(pedido.dataCriacao)}
                     </Text>
                   </View>
                   <View style={[s.statusBadge, getStatusStyle(pedido.status)]}>
-                    <Text style={[s.statusText, { color: getStatusStyle(pedido.status).color }]}>{status}</Text>
+                    <Text
+                      style={[s.statusText, { color: getStatusStyle(pedido.status).color }]}
+                      numberOfLines={1}
+                    >
+                      {status}
+                    </Text>
                   </View>
                 </View>
 
@@ -206,6 +236,23 @@ export default function OrdersScreen() {
           })
         )}
       </ScrollView>
+
+      {/* Botão "Pagar conta" — só cliente, só se tiver algo pra pagar */}
+      {!isAdmin && totalConta > 0 && (
+        <View style={s.payFooter}>
+          <TouchableOpacity
+            style={s.payBtn}
+            onPress={() => router.push('/pagamento')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="card-outline" size={20} color="#FFFFFF" />
+            <Text style={s.payBtnText}>
+              {'  Pagar conta · R$ '}
+              {totalConta.toFixed(2).replace('.', ',')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -247,6 +294,23 @@ function makeStyles(theme) {
     },
     adminText: { fontSize: 11, color: '#FFFFFF', fontWeight: '600' },
     content: { flex: 1 },
+    payFooter: {
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 28,
+      borderTopWidth: 1,
+      borderTopColor: theme.divider || '#E5E7EB',
+      backgroundColor: theme.surface,
+    },
+    payBtn: {
+      backgroundColor: '#FF6B35',
+      borderRadius: 12,
+      height: 54,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    payBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
     contentContainer: { padding: 16, gap: 12 },
     loadingText: { marginTop: 16, fontSize: 16, color: theme.textSecondary },
     emptyContainer: { alignItems: 'center', padding: 32, gap: 8 },
@@ -265,7 +329,14 @@ function makeStyles(theme) {
     pedidoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
     pedidoId: { fontSize: 16, fontWeight: '700' },
     pedidoDate: { fontSize: 13, marginTop: 2 },
-    statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
+    statusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 10,
+      borderWidth: 1,
+      flexShrink: 0,
+      alignSelf: 'flex-start',
+    },
     statusText: { fontSize: 12, fontWeight: '600' },
     itensText: { fontSize: 14, marginBottom: 6 },
     observacao: { fontSize: 13, fontStyle: 'italic', marginBottom: 6 },

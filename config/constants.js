@@ -13,6 +13,7 @@ export const APP_CONFIG = {
   STORAGE_KEYS: {
     USER_NAME: 'user:name',
     TABLE_NUMBER: 'table:number',
+    MESA_ID: 'mesa:id', // Guid da mesa na API .NET (necessário pra criar pedidos)
     RESTAURANTE_ID: 'restaurante:id',
   },
 };
