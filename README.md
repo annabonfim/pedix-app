@@ -16,7 +16,7 @@ O sistema é organizado em **3 partes**: este app mobile (React Native + Expo) e
 | 2 | Logar como **cliente** | `cliente@pedix.com` / `cliente123` → escanear/escolher Mesa 1 |
 | 3 | Fazer pedido | Cardápio → adicionar 2-3 itens → carrinho → confirmar → ver em "Pedidos" |
 | 4 | Logar como **garçom** | Logout → `garcom@pedix.com` / `garcom123` → Mesas → ver comanda → avançar status |
-| 5 | Pagar (cliente) | Volta como cliente → "Pagar conta" → método → aprova → mesa libera automaticamente |
+| 5 | Pagar (cliente) | Volta como cliente → "Pagar conta" → método → aprova → mesa libera automaticamente → app redireciona pra avaliação |
 
 > **Logins extras**: Gerente é `admin@pedix.com` / `admin123` (acessa CRUD do cardápio, categorias, relatórios).
 > **Quer mexer na API?** Swagger ao vivo em <https://pedix-dotnet-api-anna.azurewebsites.net/swagger> com roteiro pronto no [README da API](https://github.com/annabonfim/pedix-dotnet-api#-roteiro-de-teste--exemplos-prontos).
@@ -40,12 +40,16 @@ O sistema é organizado em **3 partes**: este app mobile (React Native + Expo) e
 |---|---|
 | 🔐 **Auth real (JWT + BCrypt)** | Login bate em `POST /api/auth/login-{cliente,garcom,admin}`, valida hash BCrypt e devolve JWT (HS256) com claim de role. Token guardado em AsyncStorage; `restoreSession` re-hidrata o usuário no boot. Cadastro de admin/garçom exige `AdminKey` no servidor. |
 | 🤖 **Tutti — assistente de IA** | Chat flutuante (FAB) presente em todas as telas do cliente, controlado via `TuttiChatContext`. Notificação proativa "ainda em dúvida do que pedir?" dispara **1x por sessão** quando o cliente passa 20s no cardápio sem decidir. Guard por papel (admin/gerente não vê). |
-| 💳 **Pagamento ponta-a-ponta** | Tela `pagamento.jsx` agrega itens da comanda, escolhe método (PIX/Crédito/Débito/Dinheiro), cria pagamento na API e simula maquininha (delay 2.5s). API aprova → marca todos os pedidos ativos como `ENTREGUE` em cascata → libera a mesa. Dispara notificação local de "Pagamento aprovado". |
+| 💳 **Pagamento ponta-a-ponta** | Tela `pagamento.jsx` agrega itens da comanda, escolhe método (PIX/Crédito/Débito/Dinheiro), cria o registro `Pagamento` na API e aciona a aprovação automática (delay de 2.5s representando o tempo de uma maquininha). **O fluxo é totalmente persistido e funcional** — criação do pagamento, aprovação, atualização dos pedidos pra `FINALIZADO`, liberação da mesa e notificação local. **O que não está presente** é a integração com um gateway externo (PIX real do BCB, Stripe, Mercado Pago) — fora de escopo acadêmico, exigiria CNPJ, certificado e tarifas. |
+| 🟢 **Status FINALIZADO no fluxo de pedido** | Novo estado terminal que separa "comida entregue" (ENTREGUE) de "conta paga + fechada" (FINALIZADO). Fluxo: `ABERTO → EM_PREPARO → PRONTO → ENTREGUE` (garçom) → `FINALIZADO` (via pagamento aprovado). Resolve a sobrecarga semântica antiga onde ENTREGUE valia pra dois estados diferentes. |
+| 📜 **Histórico inline no home com pagamento** | Estilo iFood: o home do cliente mostra cards dos 3 últimos pedidos finalizados com método de pagamento ("Pago via Pix R$ 50") — busca o pagamento via `GET /pagamentos/pedido/{id}`. Tap leva pra `/historico` completo. |
+| ⭐ **Fluxo pós-pagamento → avaliação** | Após "Pagamento aprovado", o app redireciona pra `/avaliacao-form` em vez de jogar o cliente pra home. Momento natural pra pedir feedback (cliente saiu satisfeito, pagou) — padrão de apps tipo iFood/Uber. |
+| 👁️ **Toggle de visibilidade da senha** | Ícone de olhinho ao lado do campo Senha em login e signup — tap alterna entre bolinhas e texto. Ajuda quem digitou errado sem precisar apagar tudo. |
 | 🪑 **Mesa auto-status** | Backend mantém status coerente sozinho: criar pedido → `OCUPADA`; entregar último pedido → `LIVRE`; cancelar pedido → mesa **continua** ocupada (cliente pode estar trocando o que pediu). |
 | 🛎️ **Dashboard de comandas (garçom)** | `admin/mesas.jsx` redesenhada: cada card de mesa ocupada mostra os itens da comanda agregados, total e contagem de pedidos. Click → `mesa-pedidos.jsx` permite avançar status de cada pedido (`ABERTO → EM_PREPARO → PRONTO → ENTREGUE`). |
 | 🔔 **Notificações locais** | `expo-notifications` com canal Android dedicado, foreground + background. Disparadas em: mudança de status de pedido, pagamento aprovado e Tutti proativo. Tap na notificação navega pra tela relevante. |
 | ⭐ **Avaliações** | Cliente avalia pedidos/itens (1–5 estrelas + comentário). Listagem visível pra todos os perfis; gerente pode deletar. |
-| 🕐 **Histórico de pedidos** | Linha do tempo visual com todas mudanças de status, agrupadas por pedido. |
+| 🕐 **Histórico de pedidos** | Tela `/historico` adapta o conteúdo por papel: **cliente** vê só os pedidos dele (com status, mesa, total); **garçom/gerente** vê todos do sistema (auditoria do que rolou no restaurante). Linkada no home do cliente como "Pedidos" (atalho) — não conflita com a tab "Pedidos" do bottom menu, que mostra só a comanda em aberto. |
 | 📱 **Tela "Sobre o App"** | Mostra versão + hash do commit, injetado em build via `app.config.js` lendo `git rev-parse --short HEAD`. Atende ao requisito de identificação da versão publicada. |
 | 📊 **Telas administrativas (gerente)** | CRUD de categorias, lista de relatórios, gestão de avaliações. |
 
@@ -86,7 +90,7 @@ O sistema é dividido em **2 backends** com responsabilidades distintas:
 | Decisão | Por quê |
 |---|---|
 | **Comanda por cliente, não por mesa** | Cada cliente loga no próprio celular, então cada um tem sua sequência de pedidos. Garante privacidade (cliente A não vê o que B pediu), pagamento individual (sem dividir conta) e a mesa serve só como "onde entregar". O garçom enxerga tudo agregado pela mesa no dashboard. |
-| **Mesa libera só com `ENTREGUE`, não com `CANCELADO`** | Se o cliente cancela um item, provavelmente vai pedir outra coisa — não faz sentido considerar a mesa livre. Já se o último pedido é entregue, a conta foi paga e a mesa pode receber outros clientes. |
+| **Mesa libera só com `FINALIZADO` (pagamento), não com `ENTREGUE` nem `CANCELADO`** | ENTREGUE significa "comida na mesa, conta em aberto" — cliente ainda precisa pagar. Cancelar item também não libera (cliente provavelmente vai pedir outra coisa). Só FINALIZADO (=pagamento aprovado pelo backend) fecha a conta de fato e devolve a mesa pra LIVRE. |
 | **`DateTime` UTC no banco, conversão no app** | API .NET serializa `DateTime` UTC sem o `Z` final; o `Date` do JS interpretaria como hora local e geraria offset de 3h no Brasil. Helper `parseAsUtc` em [utils/time.js](utils/time.js) anexa o `Z` quando ausente. Resultado: "criado há 4 min" bate com o relógio do celular. |
 | **Mesa salva como `numero` (UI) + `Guid` (storage)** | A UI mostra número humano (1, 2, 3...), mas a API .NET exige `Guid`. `scan.jsx` resolve o `Guid` via `GET /api/mesas` no momento do scan e salva ambos no `AsyncStorage` (`TABLE_NUMBER` e `MESA_ID`). |
 | **Limpar mesa só em login/logout explícito** | `restoreSession` no boot do app **não** reseta a mesa (cliente recarrega sem perder contexto). Mas login/register/logout limpam (sessão nova = mesa nova). |
@@ -124,7 +128,7 @@ Cliente
 ├── pagamento.jsx          Pagamento + escolha de método 🆕
 ├── avaliacoes.jsx         Lista de avaliações
 ├── avaliacao-form.jsx     Nova avaliação
-└── historico.jsx          Histórico de status
+└── historico.jsx          Pedidos passados (próprios do cliente; geral pro garçom/gerente)
 
 Garçom
 ├── admin/mesas.jsx        Dashboard de comandas (preview de itens)
@@ -165,7 +169,7 @@ Login agora é real — bate na API .NET com BCrypt + JWT. Os usuários abaixo e
 
 <img src="assets/qr-code-mesa1.png" alt="QR Code Mesa 1" width="200" />
 
-> A leitura de QR Code só funciona em **dispositivo físico** (Expo Go no celular). No emulador, use a entrada manual de mesa.
+> A leitura de QR Code precisa de câmera (dispositivo físico ou emulador com webcam-passthrough tipo Genymotion). No emulador padrão Android, use a **entrada manual** de mesa (1 a 10) na tela `/scan` — a validação aceita só esse range.
 
 ---
 
@@ -205,7 +209,9 @@ npm start
 ```
 
 - Escaneie o QR Code com **Expo Go** (iOS/Android), ou
-- `a` para emulador Android · `i` para simulador iOS · `w` para navegador
+- `a` para emulador Android · `i` para simulador iOS
+
+> ⚠️ Não roda em browser (`w`) — o app depende de `expo-camera`, `expo-notifications` e AsyncStorage nativo. Use sempre Expo Go ou emulador.
 
 > ⚠️ **As duas APIs estão deployadas no Azure** — você não precisa rodar nada localmente pra testar o app de ponta a ponta. Qualquer push em `main` redeploya automaticamente via GitHub Actions.
 
@@ -222,7 +228,7 @@ CSHARP_API_URL = 'https://pedix-dotnet-api-anna.azurewebsites.net/api'
 ### Dicas
 
 - Use o restaurante **"Italiano"** (ID 1) — único integrado
-- Mesas de 1 a 11
+- Mesas de **1 a 10** (validado em `scan.jsx` — números fora desse range são rejeitados)
 - **Cliente:** login → selecionar mesa → cardápio → pedido → pagar
 - **Garçom:** login → dashboard de mesas → escolher mesa → avançar status
 - **Gerente:** login → cardápio (CRUD) ou categorias/relatórios pelo Home
@@ -278,7 +284,7 @@ pedix/
 │   ├── pagamento.jsx             Pagamento + método (PIX/CRED/DEB/$) 🆕
 │   ├── avaliacoes.jsx            Lista de avaliações
 │   ├── avaliacao-form.jsx        Nova avaliação
-│   ├── historico.jsx             Histórico de status
+│   ├── historico.jsx             Pedidos passados (cliente vê só os dele, staff vê todos)
 │   ├── sobre.jsx                 Sobre o App (hash do commit)
 │   ├── admin/
 │   │   ├── mesas.jsx             Dashboard de comandas (preview por mesa)
