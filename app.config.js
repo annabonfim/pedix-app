@@ -43,6 +43,9 @@ module.exports = {
     plugins: ['expo-router', 'expo-notifications'],
     extra: {
       commitHash: getCommitHash(),
+      eas: {
+        projectId: '4781d2ed-1d39-477d-af71-1b2e1c25f288',
+      },
     },
   },
 };
