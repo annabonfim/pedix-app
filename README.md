@@ -1,6 +1,25 @@
 # Pedix 🍽️
 
-Aplicativo mobile completo para gerenciamento de pedidos em restaurantes, desenvolvido com **React Native + Expo**. O sistema cobre o fluxo de ponta a ponta: o cliente escaneia o QR Code da mesa, navega pelo cardápio, conversa com a assistente de IA **Tutti**, faz pedidos, paga a conta e acompanha tudo em tempo real; o garçom enxerga as comandas abertas e avança os status; o gerente administra cardápio (CRUD), categorias, relatórios e avaliações.
+Aplicativo mobile completo para gerenciamento de pedidos em restaurantes, desenvolvido com **React Native + Expo**. O Pedix nasceu da ideia de digitalizar o atendimento em mesa: em vez de chamar o garçom toda hora ou esperar por um cardápio impresso, o cliente faz tudo pelo próprio celular — escaneia o QR Code da mesa, navega pelo cardápio, tira dúvida com a assistente de IA **Tutti**, monta o pedido, acompanha o status em tempo real e paga a conta direto pelo app. O garçom enxerga todas as comandas abertas num dashboard e avança o status conforme prepara/entrega; o gerente administra cardápio (CRUD completo), categorias, avaliações e relatórios.
+
+O sistema é organizado em **3 partes**: este app mobile (React Native + Expo) e **duas APIs** complementares — uma em **Java/Spring Boot** que serve o cardápio, categorias, avaliações, histórico e relatórios; e outra em **.NET 8** responsável por autenticação (JWT + BCrypt), clientes, garçons, mesas, pedidos, itens-pedido e pagamentos. As duas APIs estão deployadas em **Azure App Service** com CI/CD via GitHub Actions, então o avaliador consegue testar tudo de ponta a ponta sem subir backend local.
+
+> Projeto do **Challenge Oracle 2026** da turma 2TDSPS da FIAP, desenvolvido pelo squad **CodeGirls** ao longo de 4 sprints (estrutura base → integração de APIs → autenticação e perfis → IA, pagamento e CI/CD).
+
+---
+
+## 🎯 Para o avaliador — em 5 passos
+
+| # | Ação | Como fazer |
+|---|---|---|
+| 1 | Baixar APK | Link do Firebase (será enviado junto com a entrega) |
+| 2 | Logar como **cliente** | `cliente@pedix.com` / `cliente123` → escanear/escolher Mesa 1 |
+| 3 | Fazer pedido | Cardápio → adicionar 2-3 itens → carrinho → confirmar → ver em "Pedidos" |
+| 4 | Logar como **garçom** | Logout → `garcom@pedix.com` / `garcom123` → Mesas → ver comanda → avançar status |
+| 5 | Pagar (cliente) | Volta como cliente → "Pagar conta" → método → aprova → mesa libera automaticamente |
+
+> **Logins extras**: Gerente é `admin@pedix.com` / `admin123` (acessa CRUD do cardápio, categorias, relatórios).
+> **Quer mexer na API?** Swagger ao vivo em <https://pedix-dotnet-api-anna.azurewebsites.net/swagger> com roteiro pronto no [README da API](https://github.com/annabonfim/pedix-dotnet-api#-roteiro-de-teste--exemplos-prontos).
 
 ---
 
@@ -15,90 +34,20 @@ Aplicativo mobile completo para gerenciamento de pedidos em restaurantes, desenv
 
 ---
 
-## ✨ Sprint 4 — O que foi implementado
+## ✨ O que foi implementado na Sprint 4
 
-### 🤖 Tutti — Assistente de IA
-
-Tutti é a mascote-assistente do cliente: tira dúvidas sobre o cardápio, sugere pratos e ajuda com o pedido em linguagem natural.
-
-- Chat conversacional flutuante (FAB) em todas as telas do cliente
-- **Notificação proativa** quando o cliente passa muito tempo no cardápio sem decidir
-- Animação `TuttiLoading` reaproveitada nas telas com carregamento longo (cliente)
-- Não aparece pra garçom/gerente (guard por papel)
-
-### 💳 Pagamento ponta-a-ponta
-
-Fluxo completo de fechamento de conta:
-
-1. Cliente clica "Pagar conta" em `orders.jsx`
-2. Escolhe método (PIX / Crédito / Débito / Dinheiro)
-3. App cria pagamento na API .NET (`POST /api/pagamentos`)
-4. Maquininha simulada (delay ~2.5s)
-5. Pagamento aprovado automaticamente (`PUT /pagamentos/{id}/aprovar`)
-6. **Em cascata**: todos os pedidos ativos do cliente naquela mesa viram `ENTREGUE`
-7. Mesa volta pra `LIVRE` (se não tem outros clientes ativos)
-8. Notificação local "✅ Pagamento aprovado"
-
-### 🪑 Mesa auto-status
-
-A API .NET agora mantém o status da mesa coerente automaticamente:
-
-- **Criar pedido** → mesa vira `OCUPADA`
-- **Último pedido entregue** → mesa volta pra `LIVRE`
-- **Cancelamento** mantém a mesa ocupada (cliente pode estar trocando o pedido)
-
-### 👤 Comanda por cliente (não por mesa)
-
-Cada cliente tem **sua própria comanda**, mesmo dividindo mesa com outras pessoas. Vantagens:
-
-- Privacidade (cada um vê só os próprios pedidos)
-- Pagamento individual (sem discussão sobre dividir conta)
-- Mesa indica só onde entregar
-
-O garçom vê a visão consolidada pela mesa no dashboard.
-
-### 🔔 Notificações locais
-
-Notificações disparadas em vários eventos:
-
-- Status de pedido (`EM_PREPARO → PRONTO → ENTREGUE`)
-- Pagamento aprovado
-- Tutti proativo (cliente parado no cardápio)
-
-Implementadas com `expo-notifications`, canal Android dedicado, foreground + background.
-
-### 🛎️ Dashboard de comandas (Garçom)
-
-Tela de mesas redesenhada — cada card mostra a comanda ativa por dentro:
-
-- Itens agregados com quantidade (`• 2x Pizza Margherita`)
-- Total da mesa
-- Quantidade de pedidos
-- Avanço de status direto da tela `mesa-pedidos` (`ABERTO → EM_PREPARO → PRONTO → ENTREGUE`)
-
-### 📊 Telas administrativas (Gerente)
-
-| Tela | Endpoint | Permissão |
-|------|----------|-----------|
-| **Categorias** (CRUD) | `/api/categorias-cardapio` | Gerente |
-| **Relatórios** (lista) | `/api/relatorios` | Gerente |
-| **Avaliações** (lista + delete) | `/api/avaliacoes` | Gerente |
-
-### ⭐ Avaliações pelo cliente
-
-Cliente pode avaliar pedidos e itens individuais (1–5 estrelas + comentário) via `POST /api/avaliacoes`. Listagem visível pra todos os perfis.
-
-### 🕐 Histórico de pedidos
-
-Linha do tempo visual mostrando todas as mudanças de status de cada pedido, agrupadas por número. Endpoint `/api/historicos-pedidos`.
-
-### 📱 Tela "Sobre o App"
-
-Mostra **versão** e **hash do commit** atual (injetado em build via `app.config.js` lendo `git rev-parse --short HEAD`). Atende o requisito da Sprint 4 de identificação da versão publicada.
-
-### 🔐 Autenticação real com JWT
-
-Login deixou de ser mock — agora bate na API .NET. Senhas hash com **BCrypt**, JWT válido por sessão, role embedded no token (`Cliente`/`Garcom`/`Admin`). Cadastro de admin/garçom protegido por `AdminKey` (config server-side).
+| Bloco | Resumo técnico |
+|---|---|
+| 🔐 **Auth real (JWT + BCrypt)** | Login bate em `POST /api/auth/login-{cliente,garcom,admin}`, valida hash BCrypt e devolve JWT (HS256) com claim de role. Token guardado em AsyncStorage; `restoreSession` re-hidrata o usuário no boot. Cadastro de admin/garçom exige `AdminKey` no servidor. |
+| 🤖 **Tutti — assistente de IA** | Chat flutuante (FAB) presente em todas as telas do cliente, controlado via `TuttiChatContext`. Notificação proativa "ainda em dúvida do que pedir?" dispara **1x por sessão** quando o cliente passa 20s no cardápio sem decidir. Guard por papel (admin/gerente não vê). |
+| 💳 **Pagamento ponta-a-ponta** | Tela `pagamento.jsx` agrega itens da comanda, escolhe método (PIX/Crédito/Débito/Dinheiro), cria pagamento na API e simula maquininha (delay 2.5s). API aprova → marca todos os pedidos ativos como `ENTREGUE` em cascata → libera a mesa. Dispara notificação local de "Pagamento aprovado". |
+| 🪑 **Mesa auto-status** | Backend mantém status coerente sozinho: criar pedido → `OCUPADA`; entregar último pedido → `LIVRE`; cancelar pedido → mesa **continua** ocupada (cliente pode estar trocando o que pediu). |
+| 🛎️ **Dashboard de comandas (garçom)** | `admin/mesas.jsx` redesenhada: cada card de mesa ocupada mostra os itens da comanda agregados, total e contagem de pedidos. Click → `mesa-pedidos.jsx` permite avançar status de cada pedido (`ABERTO → EM_PREPARO → PRONTO → ENTREGUE`). |
+| 🔔 **Notificações locais** | `expo-notifications` com canal Android dedicado, foreground + background. Disparadas em: mudança de status de pedido, pagamento aprovado e Tutti proativo. Tap na notificação navega pra tela relevante. |
+| ⭐ **Avaliações** | Cliente avalia pedidos/itens (1–5 estrelas + comentário). Listagem visível pra todos os perfis; gerente pode deletar. |
+| 🕐 **Histórico de pedidos** | Linha do tempo visual com todas mudanças de status, agrupadas por pedido. |
+| 📱 **Tela "Sobre o App"** | Mostra versão + hash do commit, injetado em build via `app.config.js` lendo `git rev-parse --short HEAD`. Atende ao requisito de identificação da versão publicada. |
+| 📊 **Telas administrativas (gerente)** | CRUD de categorias, lista de relatórios, gestão de avaliações. |
 
 ---
 
@@ -129,6 +78,20 @@ O sistema é dividido em **2 backends** com responsabilidades distintas:
 ```
 
 **Camada de UI** consome as duas APIs de forma transparente — `services/javaApi.js` e `services/csharpAPi.js` são clientes HTTP separados que isolam cada base URL. Hooks do TanStack Query orquestram as chamadas e mantêm o cache sincronizado.
+
+---
+
+## 🧠 Decisões de design
+
+| Decisão | Por quê |
+|---|---|
+| **Comanda por cliente, não por mesa** | Cada cliente loga no próprio celular, então cada um tem sua sequência de pedidos. Garante privacidade (cliente A não vê o que B pediu), pagamento individual (sem dividir conta) e a mesa serve só como "onde entregar". O garçom enxerga tudo agregado pela mesa no dashboard. |
+| **Mesa libera só com `ENTREGUE`, não com `CANCELADO`** | Se o cliente cancela um item, provavelmente vai pedir outra coisa — não faz sentido considerar a mesa livre. Já se o último pedido é entregue, a conta foi paga e a mesa pode receber outros clientes. |
+| **`DateTime` UTC no banco, conversão no app** | API .NET serializa `DateTime` UTC sem o `Z` final; o `Date` do JS interpretaria como hora local e geraria offset de 3h no Brasil. Helper `parseAsUtc` em [utils/time.js](utils/time.js) anexa o `Z` quando ausente. Resultado: "criado há 4 min" bate com o relógio do celular. |
+| **Mesa salva como `numero` (UI) + `Guid` (storage)** | A UI mostra número humano (1, 2, 3...), mas a API .NET exige `Guid`. `scan.jsx` resolve o `Guid` via `GET /api/mesas` no momento do scan e salva ambos no `AsyncStorage` (`TABLE_NUMBER` e `MESA_ID`). |
+| **Limpar mesa só em login/logout explícito** | `restoreSession` no boot do app **não** reseta a mesa (cliente recarrega sem perder contexto). Mas login/register/logout limpam (sessão nova = mesa nova). |
+| **Tutti proativo em flag de módulo, não state local** | Garante "1x por sessão" mesmo com remounts de `menu.jsx` (sair pro carrinho e voltar). `useRef` zeraria; flag módulo só zera quando o bundle JS recarrega. |
+| **`getDefaultGarcomId` com fallback** | App não obriga o cliente a escolher garçom — pega o 1º ativo da lista. Cache em memória pra não bater `GET /garcons` toda vez. |
 
 ---
 
@@ -354,7 +317,7 @@ pedix/
 │
 ├── services/                     Camada de API
 │   ├── javaApi.js                Cliente HTTP da API Java (Azure) 🆕
-│   ├── csharpAPi.js              Cliente HTTP da API .NET (local)
+│   ├── csharpAPi.js              Cliente HTTP da API .NET (Azure) 🆕
 │   ├── menuService.js            Cardápio (Java)
 │   ├── categoriaService.js       Categorias (Java)
 │   ├── pedidoService.js          Pedidos + itens (.NET)
