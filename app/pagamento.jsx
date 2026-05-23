@@ -64,7 +64,7 @@ function aggregateItens(pedidos, itemNameById) {
 export default function PagamentoScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [tableNumber, setTableNumber] = useState(null);
   const [metodo, setMetodo] = useState('PIX');
@@ -74,6 +74,15 @@ export default function PagamentoScreen() {
       if (val) setTableNumber(parseInt(val, 10));
     });
   }, []);
+
+  // Reset do método e mesa quando user desloga — senão Cliente B vê PIX
+  // (ou qualquer escolha do Cliente A) pré-selecionado no próximo login.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setMetodo('PIX');
+      setTableNumber(null);
+    }
+  }, [isAuthenticated]);
 
   const { data: pedidos = [], isLoading } = useMeusPedidos();
   const { data: menuItems = [] } = useMenuItems();

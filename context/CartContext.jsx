@@ -1,10 +1,20 @@
-import { createContext, useState, useContext } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
+  const { isAuthenticated } = useAuth();
   // Cada item no carrinho tem: id, nome, preço, imagem, descrição, observação e quantidade
   const [cartItems, setCartItems] = useState([]);
+
+  // Limpa o carrinho quando o usuário desloga — senão Cliente B logando
+  // depois do Cliente A no mesmo celular vê os itens dele no carrinho.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCartItems([]);
+    }
+  }, [isAuthenticated]);
 
   const addToCart = (item) => {
     setCartItems(prevItems => {

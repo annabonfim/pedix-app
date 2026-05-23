@@ -45,6 +45,15 @@ export default function CategoriasScreen() {
     setModalOpen(true);
   };
 
+  // Fecha modal e limpa state. Sem isso, ao reabrir o modal pra criar nova
+  // categoria, os campos ficariam preenchidos com a anterior.
+  const handleCloseModal = () => {
+    setEditing(null);
+    setNome('');
+    setDescricao('');
+    setModalOpen(false);
+  };
+
   const handleSave = async () => {
     if (!nome.trim()) {
       Alert.alert('Campo obrigatório', 'Informe o nome da categoria.');
@@ -57,7 +66,7 @@ export default function CategoriasScreen() {
       } else {
         await createMutation.mutateAsync(data);
       }
-      setModalOpen(false);
+      handleCloseModal();
     } catch (error) {
       Alert.alert('Erro', error.message || 'Não foi possível salvar.');
     }
@@ -155,7 +164,7 @@ export default function CategoriasScreen() {
         visible={modalOpen}
         transparent
         animationType="slide"
-        onRequestClose={() => setModalOpen(false)}
+        onRequestClose={() => handleCloseModal()}
       >
         <KeyboardAvoidingView
           style={s.modalOverlay}
@@ -166,7 +175,7 @@ export default function CategoriasScreen() {
               <Text style={[s.modalTitle, { color: theme.text }]}>
                 {editing ? 'Editar categoria' : 'Nova categoria'}
               </Text>
-              <TouchableOpacity onPress={() => setModalOpen(false)}>
+              <TouchableOpacity onPress={() => handleCloseModal()}>
                 <Ionicons name="close" size={22} color={theme.text} />
               </TouchableOpacity>
             </View>

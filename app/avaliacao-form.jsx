@@ -1,6 +1,6 @@
 // app/avaliacao-form.jsx
 // Tela de criar nova avaliação (qualquer usuário autenticado)
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -16,12 +16,22 @@ export default function AvaliacaoFormScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [nota, setNota] = useState(5);
   const [comentario, setComentario] = useState('');
   const [itemId, setItemId] = useState(params.itemId ? String(params.itemId) : '');
   const [pedidoId, setPedidoId] = useState(params.pedidoId ? String(params.pedidoId) : '');
+
+  // Reset quando navega pra avaliar um pedido/item diferente OU quando desloga.
+  // Sem isso, a tela mantém nota/comentário de uma avaliação anterior
+  // (expo-router não desmonta a tela entre navegações).
+  useEffect(() => {
+    setNota(5);
+    setComentario('');
+    setItemId(params.itemId ? String(params.itemId) : '');
+    setPedidoId(params.pedidoId ? String(params.pedidoId) : '');
+  }, [params.itemId, params.pedidoId, isAuthenticated]);
 
   const createMutation = useCreateAvaliacao();
 

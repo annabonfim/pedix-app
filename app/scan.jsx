@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,7 +34,7 @@ async function resolveMesaIdByNumero(numero) {
 export default function ScanScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
   const [tableNumber, setTableNumber] = useState('');
 
   const handleLogout = () => {
@@ -53,6 +53,17 @@ export default function ScanScreen() {
   const [scanned, setScanned] = useState(false);
 
   const [permission, requestPermission] = useCameraPermissions();
+
+  // Limpa state quando desloga (expo-router mantém tela montada).
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTableNumber('');
+      setSelectedRestaurante(null);
+      setSaved(null);
+      setScanning(false);
+      setScanned(false);
+    }
+  }, [isAuthenticated]);
 
   useFocusEffect(
     useCallback(() => {

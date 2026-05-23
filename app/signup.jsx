@@ -1,5 +1,5 @@
 // app/signup.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, ActivityIndicator, KeyboardAvoidingView,
@@ -13,7 +13,7 @@ import { colors } from '../styles/theme';
 
 export default function SignupScreen() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, isAuthenticated } = useAuth();
   const { theme } = useTheme();
 
   const [nome, setNome]         = useState('');
@@ -23,6 +23,19 @@ export default function SignupScreen() {
   const [telefone, setTelefone] = useState('');
   const [nascimento, setNascimento] = useState(''); // formato DD/MM/AAAA
   const [loading, setLoading]   = useState(false);
+
+  // Limpa todos os campos quando o usuário desloga. expo-router mantém
+  // a tela montada, então dados de um signup anterior persistiriam.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setNome('');
+      setEmail('');
+      setSenha('');
+      setShowSenha(false);
+      setTelefone('');
+      setNascimento('');
+    }
+  }, [isAuthenticated]);
 
   // Aplica máscara DD/MM/AAAA conforme digita
   const handleNascimentoChange = (raw) => {

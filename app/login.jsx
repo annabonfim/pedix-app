@@ -1,5 +1,5 @@
 // app/login.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, ActivityIndicator, KeyboardAvoidingView,
@@ -15,7 +15,7 @@ const MASCOT_FACE = require('../assets/pedix-mascot.png');
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const [role, setRole]       = useState('CLIENTE');
@@ -23,6 +23,17 @@ export default function LoginScreen() {
   const [senha, setSenha]     = useState('');
   const [showSenha, setShowSenha] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Limpa email/senha quando o usuário desloga. Sem isso, expo-router mantém
+  // a tela montada e os campos ficam preenchidos com a credencial anterior —
+  // ruim em celular compartilhado e meio estranho.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setEmail('');
+      setSenha('');
+      setShowSenha(false);
+    }
+  }, [isAuthenticated]);
 
   const isAdmin = role === 'ADMIN';
   const isGerente = role === 'GERENTE';

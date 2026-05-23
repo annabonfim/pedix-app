@@ -1,15 +1,12 @@
 // Constantes da aplicação
 
-// API Java (deployada no Azure) — cardápio, categorias, avaliações, histórico, relatórios
+// API Java (deployada no Azure) — cardápio, categorias, avaliações, relatórios.
+// URL da .NET fica em services/csharpAPi.js (hardcoded; não é compartilhada
+// porque só aquele service consome).
 const JAVA_API_URL = 'https://pedix-api-aab0evapangybdh7.eastus-01.azurewebsites.net/api';
 
-// API .NET (TODO: adicionar URL quando disponível) — pedidos, mesas, comandas, pagamentos
-const DOTNET_API_URL = 'http://10.0.2.2:5070/api';
-
 export const APP_CONFIG = {
-  API_BASE_URL: JAVA_API_URL, // default: API Java (cardápio)
   JAVA_API_URL,
-  DOTNET_API_URL,
   STORAGE_KEYS: {
     USER_NAME: 'user:name',
     TABLE_NUMBER: 'table:number',

@@ -15,11 +15,27 @@ function parseAvaliacao(item) {
   };
 }
 
+// Remove avaliações duplicadas (mesmo nomeCliente + nota + comentário).
+// O banco tem múltiplas avaliações idênticas vindas de testes anteriores e a
+// API Java exige auth pra DELETE (que o javaApi.js não envia hoje), então o
+// filtro fica aqui no front. Mantém a mais recente do grupo.
+function dedupAvaliacoes(list) {
+  const ordenadas = [...list].sort(
+    (a, b) => new Date(b.dataAvaliacao || 0) - new Date(a.dataAvaliacao || 0)
+  );
+  const seen = new Map();
+  for (const av of ordenadas) {
+    const key = `${av.nomeCliente}|${av.nota}|${(av.comentario || '').trim()}`;
+    if (!seen.has(key)) seen.set(key, av);
+  }
+  return Array.from(seen.values());
+}
+
 export async function fetchAvaliacoes() {
   try {
     const response = await javaApi.get('/avaliacoes');
     const list = Array.isArray(response) ? response : (response._embedded?.avaliacaoList || []);
-    return list.map(parseAvaliacao);
+    return dedupAvaliacoes(list.map(parseAvaliacao));
   } catch (error) {
     logger.error('Erro ao buscar avaliacoes:', error);
     throw error;
