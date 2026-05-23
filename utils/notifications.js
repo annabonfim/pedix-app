@@ -18,12 +18,14 @@ Notifications.setNotificationHandler({
 export async function requestNotificationPermission() {
   try {
     const { status: existing } = await Notifications.getPermissionsAsync();
+    logger.log('[TUTTI] permissão atual:', existing);
     if (existing === 'granted') return true;
 
     const { status } = await Notifications.requestPermissionsAsync();
+    logger.log('[TUTTI] permissão após request:', status);
     return status === 'granted';
   } catch (error) {
-    logger.warn('Erro ao pedir permissão de notificação:', error);
+    logger.warn('[TUTTI] Erro ao pedir permissão:', error);
     return false;
   }
 }
@@ -41,12 +43,20 @@ export async function setupAndroidChannel() {
       lightColor: '#FF6B35',
       sound: 'default',
     });
-    await Notifications.setNotificationChannelAsync('tutti', {
+    // Canal renomeado pra forçar criação com nova importância
+    // (Android não permite alterar importância de canal já existente).
+    await Notifications.setNotificationChannelAsync('tutti-suggestions', {
       name: 'Sugestões do Tutti',
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: Notifications.AndroidImportance.HIGH,
       lightColor: '#FF6B35',
       sound: 'default',
     });
+    // DEBUG: confirma como o canal ficou
+    const channels = await Notifications.getNotificationChannelsAsync();
+    const tuttiCh = channels.find(c => c.id === 'tutti-suggestions');
+    logger.log('[TUTTI] canal tutti-suggestions:', tuttiCh
+      ? `importance=${tuttiCh.importance} (HIGH=4, MAX=5)`
+      : 'NÃO ENCONTRADO');
   } catch (error) {
     logger.warn('Erro ao criar canais Android:', error);
   }
@@ -69,21 +79,50 @@ export async function notifyStatusPedido({ title, body, data = {} }) {
   }
 }
 
+// Notificação de pagamento aprovado — disparada após auto-aprovação
+// no fluxo de pagamento. Usa o canal 'pedidos' (HIGH importance) pra aparecer
+// como banner sobre a tela. Toque na notif leva pra /orders.
+export async function notifyPagamentoAprovado({ valor, metodoPagamento, pagamentoId }) {
+  try {
+    const valorFormatado = Number(valor || 0).toFixed(2).replace('.', ',');
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '💳 Pagamento aprovado!',
+        body: `R$ ${valorFormatado} via ${metodoPagamento}. Obrigada pela visita! 🍝`,
+        data: { action: 'open_orders', pagamentoId },
+        sound: 'default',
+      },
+      trigger: Platform.OS === 'android'
+        ? { channelId: 'pedidos' }
+        : null,
+    });
+    logger.log('[PAGAMENTO] notificação id:', id);
+  } catch (error) {
+    logger.warn('[PAGAMENTO] Erro ao disparar notificação:', error);
+  }
+}
+
 // Notificação proativa do Tutti — sugere ajuda quando o usuário fica
 // inativo na tela do cardápio. Prioridade normal (não intrusivo).
 export async function notifyTuttiProactive() {
   try {
-    await Notifications.scheduleNotificationAsync({
+    logger.log('[TUTTI] notifyTuttiProactive: chamando scheduleNotificationAsync');
+    const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: '🤖 Tutti aqui!',
         body: 'Tá em dúvida do que pedir? Posso te dar umas sugestões 🍝',
         data: { action: 'open_tutti' },
         sound: 'default',
+        // Algumas versões do expo-notifications respeitam essa chave
+        ...(Platform.OS === 'android' && { channelId: 'tutti-suggestions' }),
       },
-      trigger: null,
+      trigger: Platform.OS === 'android'
+        ? { channelId: 'tutti-suggestions' }
+        : null,
     });
+    logger.log('[TUTTI] notification id:', id);
   } catch (error) {
-    logger.warn('Erro ao disparar notificação do Tutti:', error);
+    logger.warn('[TUTTI] Erro ao disparar notificação do Tutti:', error);
   }
 }
 
