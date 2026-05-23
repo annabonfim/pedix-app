@@ -1,15 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
+import { LogBox } from 'react-native';
 import { Tabs, useRouter, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Notifications from 'expo-notifications';
 
 import { CartProvider } from '../context/CartContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { TuttiChatProvider, useTuttiChat } from '../context/TuttiChatContext';
 import { APP_CONFIG, RESTAURANTE_VALIDO_ID } from '../config/constants';
 import { clearAllData } from '../utils/storage';
 import { requestNotificationPermission, setupAndroidChannel } from '../utils/notifications';
+import { logger } from '../utils/logger';
+
+// Suprime o aviso do expo-notifications no Expo Go (SDK 53+): push remoto
+// foi removido, mas as notificações LOCAIS — que é tudo o que a gente usa —
+// continuam funcionando normalmente. O aviso é só ruído na demo.
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications (remote notifications)',
+  '`expo-notifications` functionality is not fully supported in Expo Go',
+]);
 
 // CONFIGURAÇÃO DO TANSTACK QUERY
 const queryClient = new QueryClient({
@@ -110,12 +122,15 @@ function TabLayout() {
           headerShown: false,
         }}
       >
+        {/* href: null esconde a tab da barra (rota continua acessível via push).
+            Usamos pra mostrar tabs diferentes por tipo de usuário. */}
         <Tabs.Screen
           name="index"
           options={{
             title: 'Home',
             tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
-            href: isAdmin ? '/' : null, // só garçom vê Home na tab
+            // garçom/gerente sempre veem; cliente vê após selecionar mesa
+            href: (isAdmin || hasRestaurante) ? '/' : null,
           }}
         />
         <Tabs.Screen
@@ -176,9 +191,35 @@ function TabLayout() {
         <Tabs.Screen name="avaliacao-form" options={{ href: null }} />
         <Tabs.Screen name="historico" options={{ href: null }} />
         <Tabs.Screen name="sobre" options={{ href: null }} />
+        <Tabs.Screen name="pagamento" options={{ href: null }} />
       </Tabs>
     </CartProvider>
   );
+}
+
+// TAP HANDLER DE NOTIFICAÇÕES
+// Quando o cliente toca numa notificação local, navegamos pra tela relevante
+// baseado em `data.action` que foi setado quando a notif foi disparada.
+function NotificationTapHandler() {
+  const router = useRouter();
+  const { openChat } = useTuttiChat();
+
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const action = response?.notification?.request?.content?.data?.action;
+      logger.log('[NOTIF TAP]', action);
+      if (action === 'open_tutti') {
+        router.push('/menu');
+        // Pequeno delay pra navegação completar antes de abrir o modal
+        setTimeout(openChat, 350);
+      } else if (action === 'open_orders') {
+        router.push('/orders');
+      }
+    });
+    return () => sub.remove();
+  }, [router, openChat]);
+
+  return null;
 }
 
 // LAYOUT PRINCIPAL
@@ -187,9 +228,12 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <AuthGuard>
-            <TabLayout />
-          </AuthGuard>
+          <TuttiChatProvider>
+            <NotificationTapHandler />
+            <AuthGuard>
+              <TabLayout />
+            </AuthGuard>
+          </TuttiChatProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
