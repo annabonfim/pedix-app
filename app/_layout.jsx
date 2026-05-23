@@ -134,8 +134,9 @@ function TabLayout() {
           options={{
             title: 'Home',
             tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
-            // garçom/gerente sempre veem; cliente vê após selecionar mesa
-            href: (isAdmin || hasRestaurante) ? '/' : null,
+            // Sempre visível pra qualquer perfil autenticado. Cliente sem mesa
+            // vê só o atalho "Selecionar mesa" na home (o conteúdo já se adapta).
+            href: isAuthenticated ? '/' : null,
           }}
         />
         <Tabs.Screen
@@ -144,7 +145,6 @@ function TabLayout() {
             title: 'Mesa',
             tabBarIcon: ({ color, size }) => <Icon name="qr" size={size} color={color} />,
             href: isAdmin ? null : undefined, // cliente vê, garçom não
-            tabBarStyle: !isAuthenticated || !hasRestaurante ? { display: 'none' } : undefined, // esconde tabs antes de selecionar mesa
           }}
         />
         <Tabs.Screen

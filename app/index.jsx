@@ -7,8 +7,11 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMesas } from '../hooks/useMesas';
 import { useMenuItems } from '../hooks/useMenuItems';
+import { useMeusPedidos } from '../hooks/usePedidos';
+import { usePagamentoByPedido } from '../hooks/usePagamento';
 import { colors, shared, typography } from '../styles/theme';
 import { APP_CONFIG } from '../config/constants';
+import { formatPedidoDate } from '../utils/time';
 
 // Escolhe a sugestão do dia de forma determinística (varia a cada dia,
 // mas fica fixa pra todos os clientes no mesmo dia). Usa o índice do dia
@@ -22,6 +25,56 @@ function pickSuggestionForToday(items) {
 }
 
 const MASCOT = require('../assets/pedix-mascot.png');
+
+// Tradução do método de pagamento da API .NET pra UI.
+const METODO_LABEL = {
+  PIX:      { label: 'Pix',       icon: 'flash-outline'      },
+  CREDITO:  { label: 'Crédito',   icon: 'card-outline'       },
+  DEBITO:   { label: 'Débito',    icon: 'card-outline'       },
+  DINHEIRO: { label: 'Dinheiro',  icon: 'cash-outline'       },
+};
+function metodoInfo(metodo) {
+  return METODO_LABEL[(metodo || '').toUpperCase()] || { label: metodo || '—', icon: 'help-circle-outline' };
+}
+
+// Card de um pedido finalizado no home. Busca o pagamento próprio pra mostrar
+// método (Pix/Crédito/etc). Mantido como sub-componente pra cada card ter sua
+// própria query (React Query cacheia por pedidoId).
+function PedidoFinalizadoCard({ pedido, theme, onPress }) {
+  const { data: pagamento } = usePagamentoByPedido(pedido.id);
+  const shortId = String(pedido.id).slice(-4).toUpperCase();
+  const total = pedido.total
+    ? parseFloat(pedido.total)
+    : (pedido.itens || []).reduce(
+        (sum, it) => sum + parseFloat(it.subtotal || (it.precoUnitario * (it.quantidade || 1)) || 0),
+        0
+      );
+  const m = metodoInfo(pagamento?.metodoPagamento);
+
+  return (
+    <TouchableOpacity
+      style={[shared.card, s.historicoCard, { backgroundColor: theme.surface, borderColor: colors.border }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={s.historicoHeader}>
+        <Text style={[s.historicoId, { color: theme.text }]}>Pedido #{shortId}</Text>
+        <Text style={[s.historicoTotal, { color: colors.orange }]}>
+          R$ {total.toFixed(2).replace('.', ',')}
+        </Text>
+      </View>
+      <Text style={[s.historicoDate, { color: theme.textSecondary }]}>
+        {formatPedidoDate(pedido.dataPedido || pedido.dataCriacao)}
+      </Text>
+      <View style={s.historicoPagamento}>
+        <Ionicons name={m.icon} size={14} color={pagamento ? '#198754' : theme.textMuted} />
+        <Text style={[s.historicoMetodo, { color: pagamento ? '#198754' : theme.textMuted }]}>
+          {pagamento ? `Pago via ${m.label}` : 'Sem registro de pagamento'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -45,18 +98,13 @@ export default function IndexScreen() {
   // useFocusEffect (não useEffect): expo-router mantém telas montadas entre
   // trocas de tab, então um useEffect com [] só rodaria na primeira abertura
   // e não capturaria quando o cliente volta do Scan depois de escolher mesa.
+  // Cliente sem mesa NÃO é redirecionado mais — a home se adapta mostrando
+  // só o atalho "Selecionar mesa" (ver quickItems abaixo).
   useFocusEffect(
     useCallback(() => {
       AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER)
-        .then(v => {
-          if (v) {
-            setTableNumber(parseInt(v, 10));
-          } else if (!isAdmin) {
-            // Cliente sem mesa → redireciona pro scan
-            router.replace('/scan');
-          }
-        });
-    }, [isAdmin])
+        .then(v => setTableNumber(v ? parseInt(v, 10) : null));
+    }, [])
   );
   const firstName = (user?.nome || 'você').split(' ')[0];
 
@@ -69,6 +117,16 @@ export default function IndexScreen() {
   const { data: menuItems = [] } = useMenuItems();
   const itensDisponiveis = menuItems.filter((it) => it.available);
   const sugestaoDoDia = pickSuggestionForToday(itensDisponiveis);
+
+  // Histórico recente: pega os 3 últimos pedidos FINALIZADOS do cliente
+  // pra mostrar no home (com método de pagamento). Não roda pra garçom/gerente.
+  const { data: meusPedidos = [] } = useMeusPedidos();
+  const ultimosFinalizados = !isAdmin && !isGerente
+    ? [...meusPedidos]
+        .filter((p) => (p.status || '').toUpperCase() === 'FINALIZADO')
+        .sort((a, b) => new Date(b.dataPedido || 0) - new Date(a.dataPedido || 0))
+        .slice(0, 3)
+    : [];
 
   const quickItems = isGerente
     ? [
@@ -88,8 +146,10 @@ export default function IndexScreen() {
       ]
     : tableNumber
     ? [
+        // "Pedidos" no home = histórico (passados/finalizados).
+        // A comanda em aberto fica no tab "Pedidos" do bottom menu.
         { icon: 'restaurant-outline', label: 'Cardápio',   route: '/menu' },
-        { icon: 'receipt-outline',    label: 'Pedidos',    route: '/orders' },
+        { icon: 'time-outline',       label: 'Pedidos',    route: '/historico' },
         { icon: 'star-outline',       label: 'Avaliações', route: '/avaliacoes' },
       ]
     : [
@@ -200,6 +260,29 @@ export default function IndexScreen() {
           </>
         )}
 
+        {/* Histórico recente do cliente (3 últimos finalizados, com método de pagamento).
+            Aparece tanto sem mesa (depois do "Selecionar mesa") quanto com mesa. */}
+        {ultimosFinalizados.length > 0 && (
+          <>
+            <View style={s.historicoSectionHeader}>
+              <Text style={[typography.sectionTitle, { color: theme.textSecondary }]}>
+                Seus pedidos passados
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/historico')}>
+                <Text style={s.historicoVerTodos}>Ver todos</Text>
+              </TouchableOpacity>
+            </View>
+            {ultimosFinalizados.map((pedido) => (
+              <PedidoFinalizadoCard
+                key={pedido.id}
+                pedido={pedido}
+                theme={theme}
+                onPress={() => router.push('/historico')}
+              />
+            ))}
+          </>
+        )}
+
         {/* Sugestão do dia — só aparece após selecionar mesa e se tiver cardápio carregado */}
         {(isAdmin || tableNumber) && sugestaoDoDia && (
           <>
@@ -257,6 +340,25 @@ const s = StyleSheet.create({
   name:     { fontSize: 22, fontWeight: '800', color: '#FFFFFF', marginTop: 2 },
   sub:      { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
   logoutBtn: { padding: 8 },
+
+  // Histórico recente no home
+  historicoSectionHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 8, marginBottom: 8,
+  },
+  historicoVerTodos: { color: colors.orange, fontSize: 13, fontWeight: '700' },
+  historicoCard: { padding: 12 },
+  historicoHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  historicoId:    { fontSize: 14, fontWeight: '700' },
+  historicoTotal: { fontSize: 15, fontWeight: '800' },
+  historicoDate:  { fontSize: 12, marginTop: 2 },
+  historicoPagamento: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)',
+  },
+  historicoMetodo: { fontSize: 13, fontWeight: '600' },
 
   // Quick cards
   quickRow: {
