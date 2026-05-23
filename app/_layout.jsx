@@ -54,9 +54,14 @@ function AuthGuard({ children }) {
   useEffect(() => {
     if (loading) return;
 
+    // Telas públicas (não exigem autenticação). "sobre" precisa ficar
+    // aqui porque é linkada do login.jsx — sem isso o AuthGuard joga
+    // o usuário de volta pra /login no clique.
+    const PUBLIC_SCREENS = ['login', 'signup', 'sobre'];
+    const inPublicScreen = PUBLIC_SCREENS.includes(segments[0]);
     const inAuthScreen = segments[0] === 'login' || segments[0] === 'signup';
 
-    if (!isAuthenticated && !inAuthScreen) {
+    if (!isAuthenticated && !inPublicScreen) {
       router.replace('/login');
     } else if (isAuthenticated && inAuthScreen) {
       router.replace('/');
@@ -190,7 +195,7 @@ function TabLayout() {
         <Tabs.Screen name="avaliacoes" options={{ href: null }} />
         <Tabs.Screen name="avaliacao-form" options={{ href: null }} />
         <Tabs.Screen name="historico" options={{ href: null }} />
-        <Tabs.Screen name="sobre" options={{ href: null }} />
+        <Tabs.Screen name="sobre" options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="pagamento" options={{ href: null }} />
       </Tabs>
     </CartProvider>

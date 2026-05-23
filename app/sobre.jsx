@@ -52,16 +52,17 @@ export default function SobreScreen() {
           <Text style={[s.sectionTitle, { color: theme.text }]}>Equipe CodeGirls</Text>
           <Text style={[s.author, { color: theme.text }]}>Anna Bonfim</Text>
           <Text style={[s.author, { color: theme.text }]}>Alane Rocha</Text>
+          <Text style={[s.author, { color: theme.text }]}>Maria Eduarda Araujo</Text>
         </View>
 
         <View style={[s.card, { backgroundColor: theme.surface, borderColor: colors.border }]}>
           <Text style={[s.sectionTitle, { color: theme.text }]}>Repositórios</Text>
           <TouchableOpacity
             style={s.linkRow}
-            onPress={() => Linking.openURL('https://github.com/annabonfim/pedix-mobile-sprint3')}
+            onPress={() => Linking.openURL('https://github.com/annabonfim/pedix-app')}
           >
             <Ionicons name="logo-github" size={18} color={theme.text} />
-            <Text style={[s.linkText, { color: theme.text }]}>App Mobile</Text>
+            <Text style={[s.linkText, { color: theme.text }]}>App Mobile (React Native)</Text>
             <Ionicons name="open-outline" size={16} color={theme.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity
@@ -69,7 +70,15 @@ export default function SobreScreen() {
             onPress={() => Linking.openURL('https://github.com/alanerochaa/pedix-api')}
           >
             <Ionicons name="logo-github" size={18} color={theme.text} />
-            <Text style={[s.linkText, { color: theme.text }]}>API Java</Text>
+            <Text style={[s.linkText, { color: theme.text }]}>API Java (Spring Boot)</Text>
+            <Ionicons name="open-outline" size={16} color={theme.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.linkRow}
+            onPress={() => Linking.openURL('https://github.com/annabonfim/pedix-dotnet-api')}
+          >
+            <Ionicons name="logo-github" size={18} color={theme.text} />
+            <Text style={[s.linkText, { color: theme.text }]}>API .NET (ASP.NET Core)</Text>
             <Ionicons name="open-outline" size={16} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
