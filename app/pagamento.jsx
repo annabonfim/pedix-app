@@ -94,10 +94,15 @@ export default function PagamentoScreen() {
     return acc;
   }, {});
 
-  // Considera só pedidos não-cancelados pra somar o total
-  const pedidosPagaveis = pedidos.filter(
-    (p) => (p.status || '').toUpperCase() !== 'CANCELADO'
-  );
+  // Considera só pedidos AINDA EM ABERTO (não FINALIZADO/CANCELADO) e com
+  // itens. Sem o filtro de FINALIZADO o app traz pedidos de sessões anteriores
+  // que já foram pagos. Sem o filtro de itens, traz pedidos zumbis (criados
+  // mas sem itens adicionados).
+  const TERMINAIS = new Set(['FINALIZADO', 'CANCELADO']);
+  const pedidosPagaveis = pedidos.filter((p) => {
+    const status = (p.status || '').toUpperCase();
+    return !TERMINAIS.has(status) && (p.itens || []).length > 0;
+  });
   const itensAgregados = aggregateItens(pedidosPagaveis, itemNameById);
   const total = pedidosPagaveis.reduce((s, p) => s + calculatePedidoTotal(p), 0);
   const totalFmt = total.toFixed(2).replace('.', ',');
@@ -114,7 +119,10 @@ export default function PagamentoScreen() {
           Alert.alert(
             '✅ Pagamento aprovado!',
             `R$ ${totalFmt} via ${metodo}.\nObrigada pela visita! 🍝\n\nQue tal avaliar sua experiência?`,
-            [{ text: 'Avaliar', onPress: () => router.replace('/avaliacao-form') }]
+            [
+              { text: 'Agora não', style: 'cancel', onPress: () => router.replace('/') },
+              { text: 'Avaliar', onPress: () => router.replace('/avaliacao-form') },
+            ]
           );
         },
         onError: (err) => {

@@ -20,8 +20,11 @@ export default function AvaliacaoFormScreen() {
 
   const [nota, setNota] = useState(5);
   const [comentario, setComentario] = useState('');
-  const [itemId, setItemId] = useState(params.itemId ? String(params.itemId) : '');
-  const [pedidoId, setPedidoId] = useState(params.pedidoId ? String(params.pedidoId) : '');
+  // itemId/pedidoId não são editáveis pela UI (cliente não conhece IDs) —
+  // só usados quando a tela é aberta com esses params (ex: vindo de
+  // "Avaliar pedido X" no histórico). Caso geral é avaliação livre.
+  const itemId = params.itemId ? String(params.itemId) : '';
+  const pedidoId = params.pedidoId ? String(params.pedidoId) : '';
 
   // Reset quando navega pra avaliar um pedido/item diferente OU quando desloga.
   // Sem isso, a tela mantém nota/comentário de uma avaliação anterior
@@ -29,8 +32,6 @@ export default function AvaliacaoFormScreen() {
   useEffect(() => {
     setNota(5);
     setComentario('');
-    setItemId(params.itemId ? String(params.itemId) : '');
-    setPedidoId(params.pedidoId ? String(params.pedidoId) : '');
   }, [params.itemId, params.pedidoId, isAuthenticated]);
 
   const createMutation = useCreateAvaliacao();
@@ -84,26 +85,6 @@ export default function AvaliacaoFormScreen() {
           ))}
         </View>
 
-        <Text style={[s.label, { color: theme.textSecondary }]}>Item do cardápio (opcional)</Text>
-        <TextInput
-          style={[s.input, { backgroundColor: theme.surface, color: theme.text, borderColor: colors.border }]}
-          placeholder="ID do item"
-          placeholderTextColor={colors.textMuted}
-          value={itemId}
-          onChangeText={setItemId}
-          keyboardType="number-pad"
-        />
-
-        <Text style={[s.label, { color: theme.textSecondary }]}>Pedido (opcional)</Text>
-        <TextInput
-          style={[s.input, { backgroundColor: theme.surface, color: theme.text, borderColor: colors.border }]}
-          placeholder="ID do pedido"
-          placeholderTextColor={colors.textMuted}
-          value={pedidoId}
-          onChangeText={setPedidoId}
-          keyboardType="number-pad"
-        />
-
         <Text style={[s.label, { color: theme.textSecondary }]}>Comentário</Text>
         <TextInput
           style={[s.input, s.textArea, { backgroundColor: theme.surface, color: theme.text, borderColor: colors.border }]}
@@ -128,6 +109,10 @@ export default function AvaliacaoFormScreen() {
               <Text style={s.submitText}>Enviar avaliação</Text>
             </>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={s.skipBtn} onPress={() => router.replace('/')}>
+          <Text style={[s.skipText, { color: theme.textSecondary }]}>Agora não</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -158,4 +143,6 @@ const s = StyleSheet.create({
     marginTop: 24, gap: 8,
   },
   submitText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  skipBtn:    { marginTop: 12, alignItems: 'center', padding: 12 },
+  skipText:   { fontSize: 14, fontWeight: '600' },
 });
