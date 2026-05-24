@@ -8,11 +8,23 @@ O sistema é organizado em **3 partes**: este app mobile (React Native + Expo) e
 
 ---
 
+## 📲 Download da APK
+
+> 🚀 **[Baixar Pedix.apk (último build)](https://expo.dev/accounts/annabonfim/projects/pedix/builds/2e97249e-240e-41b2-8663-688ca7a8d01c)** — abre a página do EAS Build, clica em **"Download"** no canto direito.
+
+**Hash do commit:** `626b2f1` (confere na tela "Sobre o App" depois de instalar)
+
+**Canal oficial (rubric):** o professor recebeu convite do **Firebase App Distribution** por e-mail institucional, com link direto pra instalar via Firebase App Tester. O link do EAS acima é o backup público caso o convite não chegue.
+
+> ⚠️ Só Android. iOS não tem versão (requer Apple Developer Program pago).
+
+---
+
 ## 🎯 Para o avaliador — em 5 passos
 
 | # | Ação | Como fazer |
 |---|---|---|
-| 1 | Baixar APK | Convite do **Firebase App Distribution** vai pro e-mail institucional do professor (cadastrado como tester). Backup público: [build no EAS](https://expo.dev/accounts/annabonfim/projects/pedix/builds/2e97249e-240e-41b2-8663-688ca7a8d01c) → botão "Download" |
+| 1 | Instalar APK | Ver seção [📲 Download da APK](#-download-da-apk) acima |
 | 2 | Logar como **cliente** | `cliente@pedix.com` / `cliente123` → escanear/escolher Mesa 1 |
 | 3 | Fazer pedido | Cardápio → adicionar 2-3 itens → carrinho → confirmar → ver em "Pedidos" |
 | 4 | Logar como **garçom** | Logout → `garcom@pedix.com` / `garcom123` → Mesas → ver comanda → avançar status |
