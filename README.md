@@ -262,7 +262,7 @@ CSHARP_API_URL = 'https://pedix-dotnet-api-anna.azurewebsites.net/api'
 
 ## 📹 Vídeos Demonstrativos
 
-- **Sprint 4:** _em produção_
+- **Sprint 4:** https://youtu.be/9E9DKAwodb0
 - **Sprint 3:** https://youtu.be/bcCg763gASI
 - **Sprint 2:** https://youtu.be/bAi_9F6_JrE
 
