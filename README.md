@@ -12,7 +12,7 @@ O sistema é organizado em **3 partes**: este app mobile (React Native + Expo) e
 
 | # | Ação | Como fazer |
 |---|---|---|
-| 1 | Baixar APK | Link do Firebase (será enviado junto com a entrega) |
+| 1 | Baixar APK | Convite do **Firebase App Distribution** vai pro e-mail institucional do professor (cadastrado como tester). Backup público: [build no EAS](https://expo.dev/accounts/annabonfim/projects/pedix/builds/2e97249e-240e-41b2-8663-688ca7a8d01c) → botão "Download" |
 | 2 | Logar como **cliente** | `cliente@pedix.com` / `cliente123` → escanear/escolher Mesa 1 |
 | 3 | Fazer pedido | Cardápio → adicionar 2-3 itens → carrinho → confirmar → ver em "Pedidos" |
 | 4 | Logar como **garçom** | Logout → `garcom@pedix.com` / `garcom123` → Mesas → ver comanda → avançar status |
