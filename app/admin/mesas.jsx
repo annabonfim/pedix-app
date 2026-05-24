@@ -167,7 +167,10 @@ export default function AdminMesasScreen() {
           </View>
         ) : (
           mesas.map((mesa) => {
-            const cfg = getStatusConfig(mesa.status);
+            // Usa status EFETIVO (não raw) — alinha o badge do card com a
+            // contagem do topo e evita "Livre" com comanda visível embaixo.
+            const statusEfetivo = getStatusEfetivo(mesa);
+            const cfg = getStatusConfig(statusEfetivo);
             const comanda = resumoComanda(mesa.id);
             const temPedidos = comanda.qtdPedidos > 0;
 

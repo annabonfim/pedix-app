@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useRelatorios } from '../../hooks/useRelatorios';
 import { colors, shared } from '../../styles/theme';
 import { TuttiLoading } from '../../components/Tutti/TuttiLoading';
+import { parseAsUtc } from '../../utils/time';
 
 const TIPO_ICON = {
   VENDAS: 'trending-up',
@@ -18,8 +19,8 @@ const TIPO_ICON = {
 function formatDate(iso) {
   if (!iso) return '';
   try {
-    const d = new Date(iso);
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    // dataGeracao vem da API Java sem 'Z' → parseAsUtc evita offset de -3h.
+    return parseAsUtc(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   } catch {
     return iso;
   }

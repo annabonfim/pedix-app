@@ -8,11 +8,14 @@ import { useAuth } from '../context/AuthContext';
 import { useAvaliacoes, useDeleteAvaliacao } from '../hooks/useAvaliacoes';
 import { colors, shared } from '../styles/theme';
 import { TuttiLoading } from '../components/Tutti/TuttiLoading';
+import { parseAsUtc } from '../utils/time';
 
 function formatDate(iso) {
   if (!iso) return '';
   try {
-    return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    // API Java retorna dataAvaliacao sem 'Z'. parseAsUtc trata como UTC
+    // pra não gerar offset de -3h no Brasil (mostraria "dia anterior").
+    return parseAsUtc(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   } catch {
     return iso;
   }

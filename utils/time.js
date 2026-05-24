@@ -2,8 +2,9 @@
 
 // Converte string ISO pra Date tratando timestamps sem `Z` como UTC.
 // A API .NET serializa DateTime UTC sem o `Z` no fim (ex: "2026-05-22T21:39:00").
+// API Java idem (dataAvaliacao, dataGeracao).
 // JS interpretaria isso como hora LOCAL e geraria offset de 3h no Brasil.
-function parseAsUtc(date) {
+export function parseAsUtc(date) {
   if (date instanceof Date) return date;
   if (typeof date !== 'string') return new Date(date);
   // Se já tem timezone (Z ou ±HH:MM no fim), usa direto
