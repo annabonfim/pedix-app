@@ -10,13 +10,16 @@ O sistema é organizado em **3 partes**: este app mobile (React Native + Expo) e
 
 ## 📲 Download da APK
 
-> 🚀 **[Baixar Pedix.apk (último build)](https://expo.dev/accounts/annabonfim/projects/pedix/builds/2e97249e-240e-41b2-8663-688ca7a8d01c)** — abre a página do EAS Build, clica em **"Download"** no canto direito.
+> 🚀 **[👉 Baixar Pedix.apk (download direto)](https://expo.dev/artifacts/eas/6KFGKHEvQoVTqAZa9PrpWd.apk)** — clica e baixa na hora.
 
-**Hash do commit:** `626b2f1` (confere na tela "Sobre o App" depois de instalar)
+**Hash do commit na APK:** `626b2f1` (confere na tela "Sobre o App" depois de instalar)
 
-**Canal oficial (rubric):** o professor recebeu convite do **Firebase App Distribution** por e-mail institucional, com link direto pra instalar via Firebase App Tester. O link do EAS acima é o backup público caso o convite não chegue.
+**Canal oficial (rubric):** o professor recebeu convite do **Firebase App Distribution** por e-mail institucional, com link direto pra instalar via Firebase App Tester. O link acima é o backup público caso o convite não chegue.
+
+[Página completa do build no EAS](https://expo.dev/accounts/annabonfim/projects/pedix/builds/2e97249e-240e-41b2-8663-688ca7a8d01c) (logs, fingerprint, etc.) — útil só se quiser inspecionar o processo de build.
 
 > ⚠️ Só Android. iOS não tem versão (requer Apple Developer Program pago).
+> ⚠️ O link direto expira em **07/06/2026** (política do EAS Build pra free tier). Depois disso, use o Firebase App Distribution.
 
 ---
 
