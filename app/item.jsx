@@ -56,7 +56,7 @@ export default function ItemDetail() {
         {params.image && params.image.startsWith('http') ? (
           <Image source={{ uri: params.image }} style={s.itemImage} resizeMode="cover" />
         ) : (
-          <ItemImage image={params.image} size={100} />
+          <ItemImage source={params.image} emoji={params.image} size={100} />
         )}
       </View>
 

@@ -61,8 +61,12 @@ export async function createPedido(clienteId, items, observacao = '') {
 
     logger.log('📤 Criando pedido C#', { clienteId, garcomId, mesaId, itens: items.length });
 
-    // 1) Cria o pedido vazio
-    const qsPedido = new URLSearchParams({ clienteId, garcomId, mesaId }).toString();
+    // 1) Cria o pedido vazio (com observação opcional)
+    const pedidoParams = { clienteId, garcomId, mesaId };
+    if (observacao && observacao.trim()) {
+      pedidoParams.observacao = observacao.trim();
+    }
+    const qsPedido = new URLSearchParams(pedidoParams).toString();
     const pedido = await csharpApi.post(`/pedidos?${qsPedido}`, null);
 
     if (!pedido?.id) {
@@ -244,6 +248,6 @@ function mapPedidoFromCSharp(pedido, itens) {
     valorTotal: total,
     status: pedido.status || 'ABERTO',
     itens: itensFmt,
-    observacao: '',                 // C# não tem campo observacao
+    observacao: pedido.observacao || '',
   };
 }

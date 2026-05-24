@@ -19,17 +19,23 @@ import { useEffect, useState } from 'react';
 export default function OrdersScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
   const [tableNumber, setTableNumber] = useState(null);
 
-  // Carrega o número da mesa do AsyncStorage
+  // Recarrega/limpa o número da mesa conforme troca a sessão. Sem watching
+  // isAuthenticated, depois de logout a tela continuaria mostrando "Mesa X"
+  // do cliente anterior até navegar pra outra tela.
   useEffect(() => {
+    if (!isAuthenticated) {
+      setTableNumber(null);
+      return;
+    }
     AsyncStorage.getItem(APP_CONFIG.STORAGE_KEYS.TABLE_NUMBER).then((val) => {
-      if (val) setTableNumber(parseInt(val, 10));
+      setTableNumber(val ? parseInt(val, 10) : null);
     });
-  }, []);
+  }, [isAuthenticated]);
 
   // ─── TanStack Query ──────────────────────────────────────────────────────
   const {

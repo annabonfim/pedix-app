@@ -11,13 +11,18 @@ import { fetchMenuItems, fetchMenuItemById } from '../services/menuService';
 import { pedidoKeys } from '../hooks/usePedidos';
 import { canEditPedido } from '../utils/time';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { colors } from '../styles/theme';
 import { logger } from '../utils/logger';
 
 export default function EditOrderScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { pedidoId, comandaId } = params;
+  const { pedidoId } = params;
   const queryClient = useQueryClient();
+  const { theme } = useTheme();
+  const shortId = pedidoId ? String(pedidoId).slice(-4).toUpperCase() : '';
+  const s = makeStyles(theme);
   const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
@@ -283,20 +288,20 @@ export default function EditOrderScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={s.container}>
+        <View style={s.header}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={s.backButton}
             onPress={() => router.push('/orders')}
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Text style={s.backArrow}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Editar Pedido</Text>
-          <View style={styles.backButton} />
+          <Text style={s.headerTitle}>Editar Pedido</Text>
+          <View style={s.backButton} />
         </View>
-        <View style={styles.loadingContainer}>
+        <View style={s.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Carregando pedido...</Text>
+          <Text style={s.loadingText}>Carregando pedido...</Text>
         </View>
       </View>
     );
@@ -304,19 +309,19 @@ export default function EditOrderScreen() {
 
   if (!pedidoOriginal) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={s.container}>
+        <View style={s.header}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={s.backButton}
             onPress={() => router.push('/orders')}
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Text style={s.backArrow}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Editar Pedido</Text>
-          <View style={styles.backButton} />
+          <Text style={s.headerTitle}>Editar Pedido</Text>
+          <View style={s.backButton} />
         </View>
         <Card>
-          <Text style={styles.errorText}>Pedido não encontrado</Text>
+          <Text style={s.errorText}>Pedido não encontrado</Text>
           <Button title="Voltar" onPress={() => router.push('/orders')} />
         </Card>
       </View>
@@ -327,19 +332,19 @@ export default function EditOrderScreen() {
 
   if (!canEdit) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={s.container}>
+        <View style={s.header}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={s.backButton}
             onPress={() => router.push('/orders')}
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Text style={s.backArrow}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Editar Pedido</Text>
-          <View style={styles.backButton} />
+          <Text style={s.headerTitle}>Editar Pedido</Text>
+          <View style={s.backButton} />
         </View>
         <Card>
-          <Text style={styles.errorText}>
+          <Text style={s.errorText}>
             Este pedido não pode mais ser editado. O prazo de 5 minutos expirou.
           </Text>
           <Button title="Voltar" onPress={() => router.push('/orders')} />
@@ -349,47 +354,47 @@ export default function EditOrderScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={s.container}>
+      <View style={s.header}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={s.backButton}
           onPress={() => router.push('/orders')}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <Text style={s.backArrow}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Editar Pedido #{pedidoId}</Text>
-        <View style={styles.backButton} />
+        <Text style={s.headerTitle}>Editar Pedido #{shortId}</Text>
+        <View style={s.backButton} />
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={s.content} contentContainerStyle={s.contentContainer}>
         {/* Itens do pedido */}
-        <Text style={styles.sectionTitle}>Itens do Pedido</Text>
+        <Text style={s.sectionTitle}>Itens do Pedido</Text>
         
         {itensPedido.map((item, index) => (
           <Card key={`${item.id}-${index}`}>
-            <View style={styles.itemRow}>
+            <View style={s.itemRow}>
               <ItemImage source={item.image} emoji={item.image} size={60} />
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>R$ {item.price.toFixed(2)}</Text>
+              <View style={s.itemInfo}>
+                <Text style={s.itemName}>{item.name}</Text>
+                <Text style={s.itemPrice}>R$ {item.price.toFixed(2)}</Text>
               </View>
-              <View style={styles.quantityControls}>
+              <View style={s.quantityControls}>
                 <TouchableOpacity
-                  style={styles.quantityButton}
+                  style={s.quantityButton}
                   onPress={() => handleQuantityChange(index, -1)}
                 >
-                  <Text style={styles.quantityButtonText}>-</Text>
+                  <Text style={s.quantityButtonText}>-</Text>
                 </TouchableOpacity>
-                <Text style={styles.quantityText}>{item.quantity}</Text>
+                <Text style={s.quantityText}>{item.quantity}</Text>
                 <TouchableOpacity
-                  style={styles.quantityButton}
+                  style={s.quantityButton}
                   onPress={() => handleQuantityChange(index, 1)}
                 >
-                  <Text style={styles.quantityButtonText}>+</Text>
+                  <Text style={s.quantityButtonText}>+</Text>
                 </TouchableOpacity>
               </View>
               <TouchableOpacity
-                style={styles.removeButton}
+                style={s.removeButton}
                 onPress={() => handleRemoveItem(index)}
               >
                 <Ionicons name="trash-outline" size={20} color="#DC3545" />
@@ -399,26 +404,26 @@ export default function EditOrderScreen() {
         ))}
 
         {/* Adicionar novos itens */}
-        <Text style={styles.sectionTitle}>Adicionar Itens</Text>
+        <Text style={s.sectionTitle}>Adicionar Itens</Text>
         
         {menuItens.map((item) => (
           <Card key={item.id} onPress={() => handleAddItem(item)}>
-            <View style={styles.itemRow}>
+            <View style={s.itemRow}>
               <ItemImage source={item.image} emoji={item.image} size={50} />
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>R$ {item.price.toFixed(2)}</Text>
+              <View style={s.itemInfo}>
+                <Text style={s.itemName}>{item.name}</Text>
+                <Text style={s.itemPrice}>R$ {item.price.toFixed(2)}</Text>
               </View>
-              <Text style={styles.addButton}>+</Text>
+              <Text style={s.addButton}>+</Text>
             </View>
           </Card>
         ))}
 
         {/* Observação */}
-        <Text style={styles.sectionTitle}>Observação</Text>
+        <Text style={s.sectionTitle}>Observação</Text>
         <Card>
           <TextInput
-            style={styles.observacaoInput}
+            style={s.observacaoInput}
             placeholder="Digite uma observação (opcional)"
             value={observacao}
             onChangeText={setObservacao}
@@ -430,14 +435,14 @@ export default function EditOrderScreen() {
 
         {/* Total */}
         <Card>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>R$ {calculateTotal().toFixed(2)}</Text>
+          <View style={s.totalRow}>
+            <Text style={s.totalLabel}>Total</Text>
+            <Text style={s.totalValue}>R$ {calculateTotal().toFixed(2)}</Text>
           </View>
         </Card>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={s.footer}>
         <Button
           title={saving ? 'Salvando...' : 'Salvar Alterações'}
           onPress={handleSave}
@@ -448,148 +453,152 @@ export default function EditOrderScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    paddingTop: 50,
-    backgroundColor: '#1E3A5F',
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    flex: 1,
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#7F8C8D',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#DC3545',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2C3E50',
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2C3E50',
-    marginBottom: 4,
-  },
-  itemPrice: {
-    fontSize: 14,
-    color: '#7F8C8D',
-  },
-  quantityControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 8,
-  },
-  quantityButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FF6B35',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quantityButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  quantityText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2C3E50',
-    marginHorizontal: 12,
-    minWidth: 30,
-    textAlign: 'center',
-  },
-  removeButton: {
-    padding: 8,
-  },
-  addButton: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FF6B35',
-    marginLeft: 8,
-  },
-  observacaoInput: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    color: '#2C3E50',
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  totalLabel: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#2C3E50',
-  },
-  totalValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FF6B35',
-  },
-  footer: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-});
+function makeStyles(theme) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      paddingTop: 50,
+      backgroundColor: colors.navy, // header navy fixo (visual de branding)
+    },
+    backButton: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    backArrow: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      flex: 1,
+      textAlign: 'center',
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: 16,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 16,
+      fontSize: 16,
+      color: theme.textSecondary,
+    },
+    errorText: {
+      fontSize: 16,
+      color: '#DC3545',
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.text,
+      marginTop: 16,
+      marginBottom: 12,
+    },
+    itemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    itemInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    itemName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.text,
+      marginBottom: 4,
+    },
+    itemPrice: {
+      fontSize: 14,
+      color: theme.textSecondary,
+    },
+    quantityControls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: 8,
+    },
+    quantityButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.orange,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    quantityButtonText: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    quantityText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.text,
+      marginHorizontal: 12,
+      minWidth: 30,
+      textAlign: 'center',
+    },
+    removeButton: {
+      padding: 8,
+    },
+    addButton: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: colors.orange,
+      marginLeft: 8,
+    },
+    observacaoInput: {
+      backgroundColor: theme.inputBackground,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: 12,
+      fontSize: 16,
+      color: theme.text,
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    totalLabel: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.text,
+    },
+    totalValue: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: colors.orange,
+    },
+    footer: {
+      padding: 16,
+      backgroundColor: theme.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+  });
+}
 
