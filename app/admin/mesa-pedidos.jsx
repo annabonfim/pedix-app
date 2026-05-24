@@ -65,9 +65,16 @@ export default function AdminMesaPedidosScreen() {
 
   const s = makeStyles(theme);
 
-  // Esconde pedidos zumbis (criados mas sem itens). Aparecem da época em
-  // que o POST de itens podia falhar deixando o pedido vazio.
-  const pedidosValidos = pedidos.filter((p) => (p.itens || []).length > 0);
+  // Esconde pedidos zumbis (sem itens OU com total=0 por precoMomento=0
+  // em testes antigos).
+  const calcTotal = (p) =>
+    (p.itens || []).reduce(
+      (s, it) => s + parseFloat(it.subtotal || (it.precoUnitario * (it.quantidade || 1)) || 0),
+      0
+    );
+  const pedidosValidos = pedidos.filter(
+    (p) => (p.itens || []).length > 0 && calcTotal(p) > 0
+  );
 
   // Ordena: mais urgentes primeiro (ABERTO/PENDENTE no topo)
   const pedidosOrdenados = [...pedidosValidos].sort((a, b) => {

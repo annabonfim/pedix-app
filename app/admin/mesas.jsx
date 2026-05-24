@@ -43,14 +43,21 @@ export default function AdminMesasScreen() {
 
   // Agrupa pedidos ativos por mesaId. Ignora:
   // - status terminais/entregues (garçom não tem mais ação na cozinha)
-  // - pedidos zumbis sem itens (criados mas POST de itens falhou)
+  // - pedidos zumbis sem itens OU com total=0 (criados em testes antigos
+  //   onde precoMomento foi gravado como 0)
   // - mesaId inválido (00000000-... aparece em pedidos de teste antigos)
   const SEM_ACAO = new Set(['CANCELADO', 'ENTREGUE', 'FINALIZADO']);
   const MESA_ZERO = '00000000-0000-0000-0000-000000000000';
+  const totalPedido = (p) =>
+    (p.itens || []).reduce(
+      (s, it) => s + parseFloat(it.subtotal || (it.precoUnitario * (it.quantidade || 1)) || 0),
+      0
+    );
   const pedidosByMesa = pedidos.reduce((acc, p) => {
     const st = (p.status || '').toUpperCase();
     if (SEM_ACAO.has(st)) return acc;
     if (!(p.itens || []).length) return acc;
+    if (totalPedido(p) <= 0) return acc;
     const mid = p.mesaId;
     if (!mid || mid === MESA_ZERO) return acc;
     if (!acc[mid]) acc[mid] = [];

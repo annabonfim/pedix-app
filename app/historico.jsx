@@ -66,11 +66,18 @@ export default function HistoricoScreen() {
     return acc;
   }, {});
 
-  // Esconde pedidos zumbis (sem itens). Acontecem quando o passo de criar
-  // pedido vazio passa mas o loop de adicionar itens falha (rede, cold start,
-  // app fechou). O createPedido tenta rollback agora, mas resta proteção aqui
-  // pros que ficaram de antes.
-  const pedidosValidos = pedidos.filter((p) => (p.itens || []).length > 0);
+  // Esconde pedidos zumbis. Dois casos cobertos:
+  // 1) Sem itens (rollback de POST falhou em sessões antigas)
+  // 2) Com itens mas total=0 (precoMomento foi gravado como 0 no DB
+  //    em pedidos antigos antes do fix do `item.price`)
+  const calcTotal = (p) =>
+    (p.itens || []).reduce(
+      (sum, it) => sum + parseFloat(it.subtotal || (it.precoUnitario * (it.quantidade || 1)) || 0),
+      0
+    );
+  const pedidosValidos = pedidos.filter(
+    (p) => (p.itens || []).length > 0 && calcTotal(p) > 0
+  );
 
   // Pedidos ordenados por data desc (mais recente em cima)
   const pedidosOrdenados = [...pedidosValidos].sort(

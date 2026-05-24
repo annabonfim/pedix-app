@@ -58,8 +58,15 @@ export default function OrdersScreen() {
     return acc;
   }, {});
 
-  // Esconde pedidos zumbis (sem itens) — vide nota em historico.jsx.
-  const pedidosValidos = pedidos.filter((p) => (p.itens || []).length > 0);
+  // Esconde pedidos zumbis (sem itens OU com total=0) — vide nota em historico.jsx.
+  const calcTotal = (p) =>
+    (p.itens || []).reduce(
+      (sum, it) => sum + parseFloat(it.subtotal || (it.precoUnitario * (it.quantidade || 1)) || 0),
+      0
+    );
+  const pedidosValidos = pedidos.filter(
+    (p) => (p.itens || []).length > 0 && calcTotal(p) > 0
+  );
 
   // Ordena por mais recente
   const pedidosOrdenados = [...pedidosValidos].sort((a, b) => {
