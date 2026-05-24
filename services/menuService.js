@@ -37,8 +37,9 @@ export async function fetchMenuItems(categoria = null) {
 
       // API Azure retorna `categoriaNome` (string em MAIÚSCULO).
       // Fallback pros nomes antigos pra não quebrar nada legado.
-      const categoryValue =
-        item.categoriaNome || item.categoria || item.category || 'Outros';
+      const categoryValue = normalizeCategoria(
+        item.categoriaNome || item.categoria || item.category
+      );
 
       return {
         id: String(item.id),
@@ -75,7 +76,7 @@ function parseItemResponse(response) {
     id: String(item.id),
     name: item.nome || item.name || '',
     price: parseFloat(item.preco || item.price || 0),
-    category: item.categoriaNome || item.categoria || item.category || 'PRATO',
+    category: normalizeCategoria(item.categoriaNome || item.categoria || item.category || 'PRATO'),
     categoryId: item.categoriaId ?? null,
     description: item.descricao || item.description || '',
     image: item.imagemUrl || item.image || '🍽️',
@@ -91,6 +92,15 @@ const CATEGORIA_ID_BY_NAME = {
   BEBIDA: 2,
   SOBREMESA: 3,
 };
+
+// Normaliza nome de categoria pra forma canônica do app (singular MAIÚSCULA).
+// A API Java retorna às vezes plural ("BEBIDAS") e às vezes singular,
+// dependendo de quem cadastrou. Centraliza aqui pra não espalhar o
+// `replace(/S$/)` por todas as telas que filtram/agrupam por categoria.
+function normalizeCategoria(raw) {
+  if (!raw) return 'Outros';
+  return String(raw).toUpperCase().replace(/S$/, '');
+}
 
 function resolveCategoriaId(categoryName) {
   if (!categoryName) return null;
@@ -163,7 +173,7 @@ export async function fetchMenuItemById(itemId) {
       id: String(item.id),
       name: item.nome || item.name || 'Item sem nome',
       price: parseFloat(item.preco || item.price || 0),
-      category: item.categoriaNome || item.categoria || item.category || 'Outros',
+      category: normalizeCategoria(item.categoriaNome || item.categoria || item.category || 'Outros'),
       categoryId: item.categoriaId ?? null,
       description: item.descricao || item.description || '',
       image: imageValue,
