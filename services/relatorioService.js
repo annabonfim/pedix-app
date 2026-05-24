@@ -16,11 +16,26 @@ function parseRelatorio(item) {
   };
 }
 
+// Remove relatórios duplicados (mesmo tipo + titulo). O banco acumula
+// múltiplas execuções de teste do mesmo relatório (ex: "Relatório de vendas
+// do dia" gerado 12x). Mantém o mais recente do grupo.
+function dedupRelatorios(list) {
+  const ordenados = [...list].sort(
+    (a, b) => new Date(b.dataGeracao || 0) - new Date(a.dataGeracao || 0)
+  );
+  const seen = new Map();
+  for (const r of ordenados) {
+    const key = `${r.tipo}|${r.titulo}`;
+    if (!seen.has(key)) seen.set(key, r);
+  }
+  return Array.from(seen.values());
+}
+
 export async function fetchRelatorios() {
   try {
     const response = await javaApi.get('/relatorios');
     const list = Array.isArray(response) ? response : (response._embedded?.relatorioList || []);
-    return list.map(parseRelatorio);
+    return dedupRelatorios(list.map(parseRelatorio));
   } catch (error) {
     logger.error('Erro ao buscar relatorios:', error);
     throw error;

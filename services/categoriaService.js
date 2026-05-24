@@ -12,11 +12,23 @@ function parseCategoria(item) {
   };
 }
 
+// Filtra categorias geradas em testes de dev/QA que ficaram no banco.
+// Padrões observados: "teste", "QA_TESTE_xxx", nomes com sufixo numérico
+// timestamp tipo "LANCHES_EXECUTIVOS_1779571288".
+function isJunkCategoria(nome) {
+  if (!nome) return true;
+  const n = String(nome).trim();
+  if (/teste/i.test(n)) return true;        // teste, TESTE, _teste_
+  if (/^qa[_-]/i.test(n)) return true;      // QA_xxx, qa-xxx
+  if (/_\d{6,}$/.test(n)) return true;      // ..._1779571288 (timestamps)
+  return false;
+}
+
 export async function fetchCategorias() {
   try {
     const response = await javaApi.get('/categorias-cardapio');
     const list = Array.isArray(response) ? response : (response._embedded?.categoriaCardapioList || []);
-    return list.map(parseCategoria);
+    return list.map(parseCategoria).filter((c) => !isJunkCategoria(c.nome));
   } catch (error) {
     logger.error('Erro ao buscar categorias:', error);
     throw error;

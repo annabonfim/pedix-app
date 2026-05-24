@@ -65,8 +65,12 @@ export default function AdminMesaPedidosScreen() {
 
   const s = makeStyles(theme);
 
+  // Esconde pedidos zumbis (criados mas sem itens). Aparecem da época em
+  // que o POST de itens podia falhar deixando o pedido vazio.
+  const pedidosValidos = pedidos.filter((p) => (p.itens || []).length > 0);
+
   // Ordena: mais urgentes primeiro (ABERTO/PENDENTE no topo)
-  const pedidosOrdenados = [...pedidos].sort((a, b) => {
+  const pedidosOrdenados = [...pedidosValidos].sort((a, b) => {
     const priority = { ABERTO: 0, PENDENTE: 0, EM_PREPARO: 1, PRONTO: 2, ENTREGUE: 3, FINALIZADO: 4, CANCELADO: 5 };
     const pA = priority[(a.status || '').toUpperCase()] ?? 5;
     const pB = priority[(b.status || '').toUpperCase()] ?? 5;

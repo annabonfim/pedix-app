@@ -31,7 +31,7 @@ export async function fetchMenuItems(categoria = null) {
     }
     
     // Mapeia para o formato da aplicação
-    return items.map((item) => {
+    const mapped = items.map((item) => {
       // Usa a imagem do banco, ou emoji padrão se não tiver
       const imageValue = item.imagemUrl || item.image || item.imageUrl || '🍽️';
 
@@ -51,6 +51,16 @@ export async function fetchMenuItems(categoria = null) {
         available: item.disponivel !== false && item.available !== false,
       };
     });
+
+    // Dedup: o banco acumulou duplicatas exatas (ex: 12x Cheesecake idênticos
+    // criados em testes de POST). Agrupa por nome+categoria+preço e mantém
+    // o primeiro id de cada grupo.
+    const seen = new Map();
+    for (const item of mapped) {
+      const key = `${item.name.toLowerCase().trim()}|${item.category}|${item.price.toFixed(2)}`;
+      if (!seen.has(key)) seen.set(key, item);
+    }
+    return Array.from(seen.values());
   } catch (error) {
     logger.error('Erro ao buscar itens do cardápio:', error);
     throw error;

@@ -41,14 +41,18 @@ export default function AdminMesasScreen() {
     return acc;
   }, {});
 
-  // Agrupa pedidos ativos por mesaId (ignora terminais e entregues — o
-  // garçom não tem mais ação na cozinha pra esses).
+  // Agrupa pedidos ativos por mesaId. Ignora:
+  // - status terminais/entregues (garçom não tem mais ação na cozinha)
+  // - pedidos zumbis sem itens (criados mas POST de itens falhou)
+  // - mesaId inválido (00000000-... aparece em pedidos de teste antigos)
   const SEM_ACAO = new Set(['CANCELADO', 'ENTREGUE', 'FINALIZADO']);
+  const MESA_ZERO = '00000000-0000-0000-0000-000000000000';
   const pedidosByMesa = pedidos.reduce((acc, p) => {
     const st = (p.status || '').toUpperCase();
     if (SEM_ACAO.has(st)) return acc;
+    if (!(p.itens || []).length) return acc;
     const mid = p.mesaId;
-    if (!mid) return acc;
+    if (!mid || mid === MESA_ZERO) return acc;
     if (!acc[mid]) acc[mid] = [];
     acc[mid].push(p);
     return acc;
